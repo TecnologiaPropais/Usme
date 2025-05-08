@@ -82,7 +82,7 @@ export default function FormulacionTab({ id }) {
       }
 
       const response = await axios.get(
-        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_formulacion/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -138,7 +138,7 @@ export default function FormulacionTab({ id }) {
       };
 
       await axios.post(
-        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/record`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_formulacion/record`,
         requestData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -185,7 +185,7 @@ export default function FormulacionTab({ id }) {
       formData.append('user_id', userId);
 
       await axios.post(
-        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/upload`,
+        `${config.urls.inscriptions.base}/tables/pi_formulacion/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -211,7 +211,7 @@ export default function FormulacionTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/file/${fileId}`,
+          `${config.urls.inscriptions.base}/tables/pi_formulacion/record/${id}/file/${fileId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -237,7 +237,7 @@ export default function FormulacionTab({ id }) {
         // Suponemos que el backend ya hace insertHistory al eliminar el registro.
         // Si hace falta user_id, se puede enviar por query param: `?user_id=${userId}`
         await axios.delete(
-          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/record/${formulacion_id}?user_id=${userId}`,
+          `${config.urls.inscriptions.base}/pi/tables/pi_formulacion/record/${formulacion_id}?user_id=${userId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -291,7 +291,7 @@ export default function FormulacionTab({ id }) {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id');
       await axios.put(
-        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
+        `${config.urls.inscriptions.base}/tables/pi_formulacion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
         {
           cumple: complianceCumple,
           descripcion_cumplimiento: complianceDescripcion,
@@ -347,7 +347,7 @@ export default function FormulacionTab({ id }) {
       // Obtener historial de todos los registros y combinarlo
       const historyPromises = records.map((rec) =>
         axios.get(
-          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${rec.id}/history`,
+          `${config.urls.inscriptions.base}/tables/pi_formulacion/record/${rec.id}/history`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }

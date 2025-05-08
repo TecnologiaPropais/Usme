@@ -46,7 +46,7 @@ export default function EjecucionTab({ id }) {
       }
 
       const response = await axios.get(
-        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_ejecucion/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_ejecucion/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -68,7 +68,7 @@ export default function EjecucionTab({ id }) {
     if (!token) return;
 
     const filesResponse = await axios.get(
-      `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_ejecucion/record/${id}/files`,
+      `${config.urls.inscriptions.base}/tables/pi_ejecucion/record/${id}/files`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -132,7 +132,7 @@ export default function EjecucionTab({ id }) {
       };
 
       await axios.post(
-        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_ejecucion/record`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_ejecucion/record`,
         requestData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -179,7 +179,7 @@ export default function EjecucionTab({ id }) {
       formData.append('user_id', userId);
 
       await axios.post(
-        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_ejecucion/record/${id}/upload`,
+        `${config.urls.inscriptions.base}/tables/pi_ejecucion/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -205,7 +205,7 @@ export default function EjecucionTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_ejecucion/record/${id}/file/${fileId}?user_id=${userId}`,
+          `${config.urls.inscriptions.base}/tables/pi_ejecucion/record/${id}/file/${fileId}?user_id=${userId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -227,7 +227,7 @@ export default function EjecucionTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_ejecucion/record/${ejecucion_id}?user_id=${userId}`,
+          `${config.urls.inscriptions.base}/pi/tables/pi_ejecucion/record/${ejecucion_id}?user_id=${userId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -266,7 +266,7 @@ export default function EjecucionTab({ id }) {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id');
       await axios.put(
-        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_ejecucion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
+        `${config.urls.inscriptions.base}/tables/pi_ejecucion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
         {
           cumple: complianceCumple,
           descripcion_cumplimiento: complianceDescripcion,
