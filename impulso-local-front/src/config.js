@@ -28,6 +28,9 @@ const config = {
       users: `${this.baseUrl}/users`,
       roles: `${this.baseUrl}/roles`,
       
+      // URL de tablas a nivel raíz (para DynamicTableList)
+      tables: `${this.baseUrl}/inscriptions/tables`,
+      
       // URLs de inscripciones y tablas
       inscriptions: {
         base: `${this.baseUrl}/inscriptions`,
