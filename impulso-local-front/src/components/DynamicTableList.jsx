@@ -93,9 +93,10 @@ export default function DynamicTableList() {
         }
       );
 
-      const fetchedColumns = fieldsResponse.data.map((column) => column.column_name);
+      console.log('Fields response:', fieldsResponse.data);
+      const fetchedColumns = Array.isArray(fieldsResponse.data) ? fieldsResponse.data.map((column) => column.column_name) : [];
       setColumns(fetchedColumns);
-      setFieldsData(fieldsResponse.data);
+      setFieldsData(Array.isArray(fieldsResponse.data) ? fieldsResponse.data : []);
 
       // Identificar campos de selección múltiple (llaves foráneas)
       const multiSelectFieldsArray = fieldsResponse.data
