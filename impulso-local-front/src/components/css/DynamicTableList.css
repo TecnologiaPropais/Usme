@@ -1,0 +1,129 @@
+/* Eliminar scroll del body y contenedores principales */
+body {
+  overflow: hidden !important;
+}
+
+/* Contenedor principal */
+.content-wrapper {
+  height: 100vh;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Ajustar el header de contenido */
+.content-header {
+  padding: 0;
+  margin: 0;
+  min-height: auto;
+}
+
+.content-header .container-fluid {
+  padding: 0;
+}
+
+.content-header h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  padding: 0.5rem 1rem;
+}
+
+/* Ajustar la sección de contenido */
+.content {
+  padding: 0;
+  margin: 0;
+}
+
+section.content {
+  padding: 0;
+  margin: 0;
+}
+
+.container-fluid {
+  padding: 0;
+  margin: 0;
+}
+
+.row {
+  margin: 0;
+}
+
+.col-12 {
+  padding: 0;
+}
+
+.card {
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.card-body {
+  padding: 0.5rem 1rem;
+  background: white;
+}
+
+/* Contenedor de filtros */
+.filters-container {
+  margin-bottom: 0.5rem;
+}
+
+.form-group {
+  margin-bottom: 0.3rem;
+}
+
+.form-group label {
+  margin-bottom: 0.2rem;
+}
+
+/* Select2 ajustes */
+.select2-container {
+  margin-bottom: 0.3rem;
+}
+
+/* Contenedor de la tabla */
+.table-responsive {
+  background: white;
+  margin-top: 0.5rem;
+}
+
+.table {
+  margin: 0;
+  width: 100%;
+  background: white;
+}
+
+/* Header fijo */
+.table thead th {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  z-index: 1;
+  border-bottom: 1px solid #dee2e6;
+}
+
+/* Scrollbars */
+.table-responsive::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Botones y controles */
+.controls-container {
+  flex-shrink: 0;
+  margin-top: 0.5rem;
+}
