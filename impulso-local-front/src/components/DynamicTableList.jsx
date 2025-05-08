@@ -123,7 +123,9 @@ export default function DynamicTableList() {
         }
       );
 
-      let filteredRecords = recordsResponse.data;
+      console.log('Records response:', recordsResponse.data);
+
+      let filteredRecords = Array.isArray(recordsResponse.data) ? recordsResponse.data : [];
 
       // Filtrar registros si es necesario
       if (tableName === 'inscription_caracterizacion') {
