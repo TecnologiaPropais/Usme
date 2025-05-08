@@ -78,7 +78,7 @@ export default function PiTableList() {
 
       // Obtener registros
       const recordsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/caracterizacion/records`,
+        `${config.urls.tables}/${tableName}/records`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -119,7 +119,7 @@ export default function PiTableList() {
 
       // Obtener datos relacionados para claves foráneas
       const relatedDataResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/related-data`,
+        `${config.urls.tables}/${tableName}/related-data`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
