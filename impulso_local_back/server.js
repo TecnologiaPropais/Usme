@@ -49,7 +49,7 @@ app.listen(PORT, async () => {
     
     // Crear permisos por defecto
     try {
-      const { Permission } = require('./src/models');
+      const Permission = require('./src/models/Permission')(sequelize, require('sequelize').DataTypes);
       const defaultPermissions = [
         { permission_name: 'admin' },
         { permission_name: 'user' }
