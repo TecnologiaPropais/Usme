@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import API_BASE_URL from '../../config';
+import config from '../../config';
 
 export default function FormulacionProvTab({ id }) {
   const [fields, setFields] = useState([]);
@@ -43,9 +43,9 @@ export default function FormulacionProvTab({ id }) {
           throw new Error('No se encontró el token de autenticación.');
         }
 
-        const fieldsUrl = `${API_BASE_URL}/inscriptions/tables/${tableName}/fields`;
-        const rubrosUrl = `${API_BASE_URL}/inscriptions/tables/${rubroTableName}/records`;
-        const elementosUrl = `${API_BASE_URL}/inscriptions/tables/${elementoTableName}/records`;
+        const fieldsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/fields`;
+        const rubrosUrl = `${config.urls.inscriptions.base}/tables/${rubroTableName}/records`;
+        const elementosUrl = `${config.urls.inscriptions.base}/tables/${elementoTableName}/records`;
 
         const [fieldsResponse, rubrosResponse, elementosResponse] = await Promise.all([
           axios.get(fieldsUrl, { headers: { Authorization: `Bearer ${token}` } }),
@@ -81,7 +81,7 @@ export default function FormulacionProvTab({ id }) {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
-        let recordsUrl = `${API_BASE_URL}/inscriptions/tables/${tableName}/records?Rubro=${selectedRubro}`;
+        let recordsUrl = `${config.urls.inscriptions.base}/tables/${tableName}/records?Rubro=${selectedRubro}`;
         if (selectedElemento) {
           recordsUrl += `&Elemento=${selectedElemento}`;
         }
@@ -106,7 +106,7 @@ export default function FormulacionProvTab({ id }) {
     const fetchPiFormulacionRecords = async () => {
       try {
         const token = localStorage.getItem('token');
-        const piFormulacionUrl = `${API_BASE_URL}/inscriptions/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
+        const piFormulacionUrl = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
         const response = await axios.get(piFormulacionUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -115,7 +115,7 @@ export default function FormulacionProvTab({ id }) {
         const providerIds = piRecords.map((piRecord) => piRecord.rel_id_prov);
 
         const providerPromises = providerIds.map((providerId) => {
-          const providerUrl = `${API_BASE_URL}/inscriptions/tables/${tableName}/record/${providerId}`;
+          const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
           return axios.get(providerUrl, {
             headers: { Authorization: `Bearer ${token}` },
           });
@@ -183,7 +183,7 @@ export default function FormulacionProvTab({ id }) {
         Cantidad: cantidad,
       };
 
-      const endpoint = `${API_BASE_URL}/inscriptions/pi/tables/${piFormulacionTableName}/record`;
+      const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
 
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
@@ -208,7 +208,7 @@ export default function FormulacionProvTab({ id }) {
         } else {
           // No se encontraba el registro en el estado => lo traemos de la API y lo agregamos
           axios.get(
-            `${API_BASE_URL}/inscriptions/tables/${tableName}/record/${recordId}`,
+            `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}`,
             { headers: { Authorization: `Bearer ${token}` } }
           ).then((res) => {
             const providerData = res.data.record;
@@ -259,7 +259,7 @@ export default function FormulacionProvTab({ id }) {
         }
       }
 
-      const endpoint = `${API_BASE_URL}/inscriptions/pi/tables/${piFormulacionTableName}/record`;
+      const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
 
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
@@ -291,7 +291,7 @@ export default function FormulacionProvTab({ id }) {
           // Registro no existe en el estado, lo buscamos tras la creación
           const newRecord = { ...recordData };
           axios.get(
-            `${API_BASE_URL}/inscriptions/tables/${tableName}/record/${record.id}`,
+            `${config.urls.inscriptions.base}/tables/${tableName}/record/${record.id}`,
             { headers: { Authorization: `Bearer ${token}` } }
           ).then((res) => {
             const providerData = res.data.record;
