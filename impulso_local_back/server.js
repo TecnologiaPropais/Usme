@@ -43,13 +43,18 @@ app.get('/', (req, res) => {
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, async () => {
   try {
-    // Sincronizar modelos solo en desarrollo
-    if (process.env.NODE_ENV !== 'production') {
-      await sequelize.sync({ alter: true });
-      console.log('Base de datos sincronizada y tablas ajustadas (solo en desarrollo)');
-    } else {
-      console.log('Sincronización automática deshabilitada en producción');
-    }
+    // Sincronizar modelos con la base de datos
+    await sequelize.sync({ force: false, alter: true });
+    console.log('Base de datos sincronizada');
+    // Crear permisos por defecto
+    const Permission = require('./src/models/Permission')(sequelize, require('sequelize').DataTypes);
+    await Permission.bulkCreate([
+      { permission_name: 'admin' },
+      { permission_name: 'user' }
+    ], {
+      ignoreDuplicates: true
+    });
+    console.log('Permisos creados exitosamente');
     console.log(`Servidor corriendo en el puerto ${PORT}`);
   } catch (error) {
     console.error('Error sincronizando la base de datos:', error);
