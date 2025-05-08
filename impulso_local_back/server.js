@@ -11,6 +11,8 @@ const inscriptionRoutes = require('./src/routes/inscriptionRoutes'); // Importar
 const path = require('path');
 require('dotenv').config();
 require('./src/models/associations'); // Cargar las asociaciones entre modelos
+const Role = require('./src/models/Role');
+const Permission = require('./src/models/Permission');
 
 const app = express();
 app.use(cors());
@@ -37,6 +39,22 @@ app.use('/api/inscriptions', inscriptionRoutes);
 // Ruta básica de prueba
 app.get('/', (req, res) => {
   res.send('API Impulso Local funcionando');
+});
+
+// Endpoint temporal para depuración de permisos
+app.get('/api/debug/permissions/:roleId', async (req, res) => {
+  try {
+    const roleId = req.params.roleId;
+    const role = await Role.findByPk(roleId, {
+      include: {
+        model: Permission,
+        as: 'permissions',
+      },
+    });
+    res.json(role);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Iniciar el servidor
