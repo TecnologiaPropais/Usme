@@ -232,10 +232,12 @@ export default function FormulacionProvTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const existingPiData = getPiFormulacionData(record.id);
+      const cantidad = existingPiData.Cantidad || 1;
 
       const recordData = {
         caracterizacion_id: id,
         rel_id_prov: record.id,
+        Cantidad: cantidad,
         [field]: value,
       };
 
