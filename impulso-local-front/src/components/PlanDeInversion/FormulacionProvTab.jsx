@@ -112,7 +112,10 @@ export default function FormulacionProvTab({ id }) {
         });
         const piRecords = response.data;
 
-        const providerIds = piRecords.map((piRecord) => piRecord.rel_id_prov);
+        // Filtrar solo IDs válidos
+        const providerIds = piRecords
+          .map((piRecord) => piRecord.rel_id_prov)
+          .filter((id) => id !== undefined && id !== null);
 
         const providerPromises = providerIds.map((providerId) => {
           const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
