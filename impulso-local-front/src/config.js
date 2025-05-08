@@ -17,13 +17,37 @@ const config = {
   // URLs específicas para diferentes recursos
   get urls() {
     return {
+      // URLs de autenticación
+      auth: {
+        login: `${this.baseUrl}/users/login`,
+        forgotPassword: `${this.baseUrl}/users/forgot-password`,
+        resetPassword: (token) => `${this.baseUrl}/users/reset-password/${token}`,
+      },
+      
+      // URLs de usuarios y roles
       users: `${this.baseUrl}/users`,
       roles: `${this.baseUrl}/roles`,
-      inscriptions: `${this.baseUrl}/inscriptions`,
-      pi: `${this.baseUrl}/inscriptions/pi`,
-      tables: `${this.baseUrl}/inscriptions/tables`,
-      providers: `${this.baseUrl}/inscriptions/tables?tableType=provider`,
-      inscriptionsTables: `${this.baseUrl}/inscriptions/tables?tableType=inscription`
+      
+      // URLs de inscripciones y tablas
+      inscriptions: {
+        base: `${this.baseUrl}/inscriptions`,
+        pi: `${this.baseUrl}/inscriptions/pi`,
+        tables: `${this.baseUrl}/inscriptions/tables`,
+        providers: `${this.baseUrl}/inscriptions/tables?tableType=provider`,
+        inscriptionsTables: `${this.baseUrl}/inscriptions/tables?tableType=inscription`,
+        primaryTables: `${this.baseUrl}/inscriptions/tables?isPrimary=true`,
+        downloadZip: `${this.baseUrl}/inscriptions/download-multiple-zip`,
+      },
+      
+      // URLs para archivos y registros
+      files: {
+        upload: (tableName, recordId) => `${this.baseUrl}/inscriptions/tables/${tableName}/record/${recordId}/upload`,
+        delete: (tableName, recordId, fileId) => `${this.baseUrl}/inscriptions/tables/${tableName}/record/${recordId}/file/${fileId}`,
+        compliance: (tableName, recordId, fileId) => `${this.baseUrl}/inscriptions/tables/${tableName}/record/${recordId}/file/${fileId}/compliance`,
+      },
+      
+      // URLs para historial
+      history: (tableName, recordId) => `${this.baseUrl}/inscriptions/tables/${tableName}/record/${recordId}/history`,
     };
   }
 };
