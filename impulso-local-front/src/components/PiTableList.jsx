@@ -48,7 +48,7 @@ export default function PiTableList() {
 
       // Obtener campos con información completa
       const fieldsResponse = await axios.get(
-        `${config.urls.tables}/pi/${tableName}/fields`,
+        `${config.urls.tables}/${tableName}/fields`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
