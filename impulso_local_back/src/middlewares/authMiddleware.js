@@ -40,6 +40,7 @@ const authenticateRole = (requiredRole) => {
 const authorizePermission = (requiredPermission) => {
   return async (req, res, next) => {
     try {
+      console.log("=== AUTORIZACIÓN ===");
       console.log("Verificando permisos para el rol:", req.user.role);
       console.log("Permiso requerido:", requiredPermission);
 
