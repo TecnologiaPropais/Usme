@@ -48,15 +48,24 @@ app.listen(PORT, async () => {
     console.log('Base de datos sincronizada');
     
     // Crear permisos por defecto
-    const { Permission } = require('./src/models');
-    
-    await Permission.bulkCreate([
-      { permission_name: 'admin' },
-      { permission_name: 'user' }
-    ], {
-      ignoreDuplicates: true
-    });
-    console.log('Permisos creados exitosamente');
+    try {
+      const { Permission } = require('./src/models');
+      const defaultPermissions = [
+        { permission_name: 'admin' },
+        { permission_name: 'user' }
+      ];
+
+      for (const permission of defaultPermissions) {
+        await Permission.findOrCreate({
+          where: { permission_name: permission.permission_name },
+          defaults: permission
+        });
+      }
+      console.log('Permisos creados exitosamente');
+    } catch (error) {
+      console.error('Error creando permisos:', error);
+    }
+
     console.log(`Servidor corriendo en el puerto ${PORT}`);
   } catch (error) {
     console.error('Error sincronizando la base de datos:', error);
