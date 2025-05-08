@@ -46,9 +46,12 @@ app.listen(PORT, async () => {
     // Sincronizar modelos con la base de datos
     await sequelize.sync({ force: false, alter: true });
     console.log('Base de datos sincronizada');
+    
     // Crear permisos por defecto
-    const Permission = require('./src/models/Permission')(sequelize, require('sequelize').DataTypes);
-    await Permission.bulkCreate([
+    const Permission = require('./src/models/Permission');
+    const PermissionModel = Permission(sequelize, require('sequelize').DataTypes);
+    
+    await PermissionModel.bulkCreate([
       { permission_name: 'admin' },
       { permission_name: 'user' }
     ], {
