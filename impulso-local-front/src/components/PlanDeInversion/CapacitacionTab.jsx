@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
+import config from '../../config';
 
 // Mapeo de "código" => "texto de la columna" en tu BD
 const codeToText = {
@@ -46,7 +47,7 @@ export default function CapacitacionTab({ id }) {
         }
 
         const response = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_capacitacion/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_capacitacion/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -109,7 +110,7 @@ export default function CapacitacionTab({ id }) {
 
       // Guardar en BD
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_capacitacion/record/${recordId}`,
+        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_capacitacion/record/${recordId}`,
         updatedRecord,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -139,7 +140,7 @@ export default function CapacitacionTab({ id }) {
     try {
       const token = localStorage.getItem("token");
       const historyResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_capacitacion/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_capacitacion/record/${recordId}/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setHistory(historyResponse.data.history || []);

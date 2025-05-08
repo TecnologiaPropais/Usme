@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import config from '../../config';
 
 export default function FormulacionTab({ id }) {
   const [records, setRecords] = useState([]);
@@ -45,7 +46,7 @@ export default function FormulacionTab({ id }) {
     if (!token) return;
 
     const filesResponse = await axios.get(
-      `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_formulacion/record/${id}/files`,
+      `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/files`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -81,7 +82,7 @@ export default function FormulacionTab({ id }) {
       }
 
       const response = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_formulacion/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -137,7 +138,7 @@ export default function FormulacionTab({ id }) {
       };
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_formulacion/record`,
+        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/record`,
         requestData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -184,7 +185,7 @@ export default function FormulacionTab({ id }) {
       formData.append('user_id', userId);
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_formulacion/record/${id}/upload`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -210,7 +211,7 @@ export default function FormulacionTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_formulacion/record/${id}/file/${fileId}`,
+          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/file/${fileId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -236,7 +237,7 @@ export default function FormulacionTab({ id }) {
         // Suponemos que el backend ya hace insertHistory al eliminar el registro.
         // Si hace falta user_id, se puede enviar por query param: `?user_id=${userId}`
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_formulacion/record/${formulacion_id}?user_id=${userId}`,
+          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_formulacion/record/${formulacion_id}?user_id=${userId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -290,7 +291,7 @@ export default function FormulacionTab({ id }) {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_formulacion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/file/${selectedFileForCompliance.id}/compliance`,
         {
           cumple: complianceCumple,
           descripcion_cumplimiento: complianceDescripcion,
@@ -346,7 +347,7 @@ export default function FormulacionTab({ id }) {
       // Obtener historial de todos los registros y combinarlo
       const historyPromises = records.map((rec) =>
         axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_formulacion/record/${rec.id}/history`,
+          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${rec.id}/history`,
           {
             headers: { Authorization: `Bearer ${token}` }
           }
@@ -470,7 +471,7 @@ export default function FormulacionTab({ id }) {
                                   <strong>{f.name}</strong>
                                   <br />
                                   <a
-                                    href={`https://impulso-local-back.onrender.com${f.url}`}
+                                    href={`${config.baseUrl}${f.url}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                   >

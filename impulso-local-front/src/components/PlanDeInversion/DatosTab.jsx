@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import config from '../../config';
 
 export default function DatosTab({ id }) {
   const [fields, setFields] = useState([]);
@@ -33,7 +34,7 @@ export default function DatosTab({ id }) {
 
         // Obtener campos de la tabla (vía PI)
         const fieldsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/fields`,
+          `${config.urls.inscriptions.base}/tables/${tableName}/fields`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -44,7 +45,7 @@ export default function DatosTab({ id }) {
 
         // Obtener registro existente filtrado por caracterizacion_id
         const recordsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.base}/tables/${tableName}/records?caracterizacion_id=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -88,7 +89,7 @@ export default function DatosTab({ id }) {
       if (recordId) {
         // Actualizar registro existente
         await axios.put(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record/${recordId}`,
+          `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}`,
           recordData,
           {
             headers: {
@@ -106,7 +107,7 @@ export default function DatosTab({ id }) {
         // recordData.id = userId;
 
         await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record`,
+          `${config.urls.inscriptions.base}/tables/${tableName}/record`,
           recordData,
           {
             headers: {
@@ -129,7 +130,7 @@ export default function DatosTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}/history`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

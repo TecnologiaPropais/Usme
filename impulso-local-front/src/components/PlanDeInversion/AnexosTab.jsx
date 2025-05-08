@@ -200,7 +200,7 @@ export default function AnexosTab({ id }) {
                         <strong>{f.name}</strong>
                         <br />
                         <a
-                          href={`https://impulso-local-back.onrender.com${f.url}`}
+                          href={`${config.baseUrl}${f.url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

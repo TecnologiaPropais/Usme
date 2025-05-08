@@ -28,7 +28,7 @@ export default function UserView() {
         });
 
         // Obtener los roles disponibles
-        const rolesResponse = await axios.get('https://impulso-local-back.onrender.com/api/roles', {
+        const rolesResponse = await axios.get(config.urls.roles, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

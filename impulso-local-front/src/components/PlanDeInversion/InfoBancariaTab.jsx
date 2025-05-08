@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
+import config from '../../config';
 
 export default function InfoBancariaTab({ id }) {
   const [data, setData] = useState({
@@ -82,7 +83,7 @@ export default function InfoBancariaTab({ id }) {
 
     try {
       const filesResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/files`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/files`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -112,7 +113,7 @@ export default function InfoBancariaTab({ id }) {
 
       // Obtener registro pi_informacion_bancaria
       const response = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_informacion_bancaria/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_informacion_bancaria/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -206,14 +207,14 @@ export default function InfoBancariaTab({ id }) {
       if (recordId) {
         // Actualizar (PUT)
         await axios.put(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_informacion_bancaria/record/${recordId}`,
+          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_informacion_bancaria/record/${recordId}`,
           requestData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } else {
         // Crear (POST)
         const createResponse = await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_informacion_bancaria/record`,
+          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_informacion_bancaria/record`,
           requestData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -254,7 +255,7 @@ export default function InfoBancariaTab({ id }) {
       formData.append('user_id', userId);
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/upload`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -281,7 +282,7 @@ export default function InfoBancariaTab({ id }) {
         const userId = localStorage.getItem('id');
 
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/file/${fileId}`,
+          `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_informacion_bancaria/record/${id}/file/${fileId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -318,7 +319,7 @@ export default function InfoBancariaTab({ id }) {
       }
 
       const response = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_informacion_bancaria/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_informacion_bancaria/record/${recordId}/history`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -443,7 +444,7 @@ export default function InfoBancariaTab({ id }) {
                         <strong>{f.name}</strong>
                         <br />
                         <a
-                          href={`https://impulso-local-back.onrender.com${f.url}`}
+                          href={`${config.baseUrl}${f.url}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

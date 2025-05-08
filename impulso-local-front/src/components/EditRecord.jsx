@@ -52,7 +52,7 @@ export default function EditRecord() {
   const handleSave = async () => {
     try {
       const token = localStorage.getItem('token');
-      await axios.put(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/records/${id}`, record, {
+      await axios.put(`${config.urls.inscriptions.base}/tables/${tableName}/records/${id}`, record, {
         headers: {
           Authorization: `Bearer ${token}`,
         },

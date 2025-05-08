@@ -77,8 +77,6 @@ export default function GenerarFichaTab({ id }) {
           return;
         }
 
-        const baseURL = 'https://impulso-local-back.onrender.com/api/inscriptions';
-
         // Realizar solicitudes en paralelo
         const [
           caracterizacionResponse,
@@ -118,7 +116,7 @@ export default function GenerarFichaTab({ id }) {
         // 4. Obtener datos del asesor
         const asesorId = caracterizacionResponse.data.record.Asesor;
         if (asesorId) {
-          const asesorResponse = await axios.get(`${baseURL}/tables/users/record/${asesorId}`, { headers: { Authorization: `Bearer ${token}` } });
+          const asesorResponse = await axios.get(`${config.urls.inscriptions.tables}/users/record/${asesorId}`, { headers: { Authorization: `Bearer ${token}` } });
           const asesorData = asesorResponse.data.record;
           const nombreAsesor = asesorData.username || 'No asignado';
           setAsesorNombre(nombreAsesor);
