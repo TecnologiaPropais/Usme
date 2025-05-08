@@ -264,11 +264,14 @@ export default function FormulacionProvTab({ id }) {
 
       const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
 
+      console.log('Enviando recordData:', recordData);
+
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
+        console.log('Enviando recordData (POST):', recordData);
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
