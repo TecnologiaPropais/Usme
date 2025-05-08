@@ -44,16 +44,26 @@ const authorizePermission = (requiredPermission) => {
       console.log("Verificando permisos para el rol:", req.user.role);
       console.log("Permiso requerido:", requiredPermission);
 
+      // Cargar el rol y todos sus permisos
       const role = await Role.findByPk(req.user.role, {
         include: {
           model: Permission,
           as: 'permissions',
-          where: { permission_name: requiredPermission },
         },
       });
 
       if (!role) {
-        console.log("Permiso denegado. El rol no tiene acceso.");
+        console.log("Permiso denegado. El rol no existe.");
+        return res.status(403).json({ message: 'Permiso denegado' });
+      }
+
+      // Verificar si el permiso requerido está en la lista de permisos del rol
+      const hasPermission = role.permissions.some(
+        (perm) => perm.permission_name === requiredPermission
+      );
+
+      if (!hasPermission) {
+        console.log("Permiso denegado. El rol no tiene el permiso requerido.");
         return res.status(403).json({ message: 'Permiso denegado' });
       }
 
