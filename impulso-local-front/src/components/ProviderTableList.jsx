@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/UsersList.css'; // Ajusta la ruta si es necesario
+import config from '../config';
 
 export default function ProviderTableList() {
   // Estados y variables
@@ -38,7 +39,7 @@ export default function ProviderTableList() {
 
       // Obtener campos con información completa
       const fieldsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/fields`,
+        `${config.urls.tables}/${tableName}/fields`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -71,7 +72,7 @@ export default function ProviderTableList() {
 
       // Obtener registros
       const recordsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/records`,
+        `${config.urls.tables}/${tableName}/records`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -95,7 +96,7 @@ export default function ProviderTableList() {
     const fetchTables = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('https://impulso-local-back.onrender.com/api/inscriptions/tables', {
+        const response = await axios.get(config.urls.tables, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -260,7 +261,7 @@ export default function ProviderTableList() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${selectedTable}/bulk-update`,
+        `${config.urls.tables}/${selectedTable}/bulk-update`,
         {
           recordIds: selectedRecords,
           updates: bulkUpdateData,
@@ -294,7 +295,7 @@ export default function ProviderTableList() {
 
         for (const field of multiSelectFields) {
           const response = await axios.get(
-            `https://impulso-local-back.onrender.com/api/inscriptions/tables/${selectedTable}/field-options/${field}`,
+            `${config.urls.tables}/${selectedTable}/field-options/${field}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

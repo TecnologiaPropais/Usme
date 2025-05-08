@@ -5,6 +5,7 @@ import axios from 'axios';
 import './css/DynamicRecordEdit.css';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
+import config from '../config';
 
 export default function DynamicRecordEdit() {
   const { tableName, recordId } = useParams();
@@ -67,7 +68,7 @@ export default function DynamicRecordEdit() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}`,
+        `${config.urls.tables}/${tableName}/record/${recordId}`,
         { ...record, Estado: newStatus },
         {
           headers: {
@@ -88,7 +89,7 @@ export default function DynamicRecordEdit() {
     try {
       const token = localStorage.getItem('token');
       const commentsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/comments`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/comments`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -112,7 +113,7 @@ export default function DynamicRecordEdit() {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/history`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/history`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -134,7 +135,7 @@ export default function DynamicRecordEdit() {
         const token = localStorage.getItem('token');
 
         const fieldsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/fields`,
+          `${config.urls.tables}/${tableName}/fields`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -155,7 +156,7 @@ export default function DynamicRecordEdit() {
         setFields(filteredFields);
 
         const recordResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}`,
+          `${config.urls.tables}/${tableName}/record/${recordId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -168,7 +169,7 @@ export default function DynamicRecordEdit() {
 
         if (estadoExists) {
           const estadoOptionsResponse = await axios.get(
-            `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/field-options/Estado`,
+            `${config.urls.tables}/${tableName}/field-options/Estado`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -189,7 +190,7 @@ export default function DynamicRecordEdit() {
 
         if (filteredFields.some((field) => field.column_name === 'Asesor')) {
           const asesorsResponse = await axios.get(
-            'https://impulso-local-back.onrender.com/api/users/asesors',
+            `${config.urls.users}/asesors`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -200,7 +201,7 @@ export default function DynamicRecordEdit() {
         }
 
         const inscriptionsResponse = await axios.get(
-          'https://impulso-local-back.onrender.com/api/inscriptions/tables?tableType=inscription',
+          `${config.urls.tables}?tableType=inscription`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -208,7 +209,7 @@ export default function DynamicRecordEdit() {
           }
         );
         const providersResponse = await axios.get(
-          'https://impulso-local-back.onrender.com/api/inscriptions/tables?tableType=provider',
+          `${config.urls.tables}?tableType=provider`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -225,7 +226,7 @@ export default function DynamicRecordEdit() {
         setIsPrimaryTable(selectedTableObj?.is_primary || false);
 
         const filesResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/files`,
+          `${config.urls.tables}/${tableName}/record/${recordId}/files`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -308,7 +309,7 @@ export default function DynamicRecordEdit() {
       const token = localStorage.getItem('token');
 
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}`,
+        `${config.urls.tables}/${tableName}/record/${recordId}`,
         record,
         {
           headers: {
@@ -341,7 +342,7 @@ export default function DynamicRecordEdit() {
       formData.append('user_id', userId); // Enviar el user_id al backend
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/upload`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/upload`,
         formData,
         {
           headers: {
@@ -352,7 +353,7 @@ export default function DynamicRecordEdit() {
       );
 
       const filesResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/files`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/files`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -376,7 +377,7 @@ export default function DynamicRecordEdit() {
       try {
         const token = localStorage.getItem('token');
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/file/${fileId}`,
+          `${config.urls.tables}/${tableName}/record/${recordId}/file/${fileId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -385,7 +386,7 @@ export default function DynamicRecordEdit() {
         );
 
         const filesResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/files`,
+          `${config.urls.tables}/${tableName}/record/${recordId}/files`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -422,7 +423,7 @@ export default function DynamicRecordEdit() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/file/${selectedFileForCompliance.id}/compliance`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/file/${selectedFileForCompliance.id}/compliance`,
         {
           cumple: complianceCumple,
           descripcion_cumplimiento: complianceDescripcion,
@@ -464,7 +465,7 @@ export default function DynamicRecordEdit() {
 
     try {
       const response = await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/comments`,
+        `${config.urls.tables}/${tableName}/record/${recordId}/comments`,
         {
           comment: newComment.trim(),
         },

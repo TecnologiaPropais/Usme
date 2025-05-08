@@ -4,6 +4,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/UsersList.css';
 import './css/DynamicTableList.css'; // Importar los nuevos estilos
+import config from '../config';
 
 export default function PiTableList() {
   const [records, setRecords] = useState([]);
@@ -47,7 +48,7 @@ export default function PiTableList() {
 
       // Obtener campos con información completa
       const fieldsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/fields`,
+        `${config.urls.tables}/pi/${tableName}/fields`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

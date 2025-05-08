@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/ListTables.css'; // Asegúrate de tener este archivo para estilos personalizados
+import config from '../config';
 
 export default function ListTables() {
   const [tables, setTables] = useState([]);
@@ -32,7 +33,7 @@ export default function ListTables() {
         throw new Error('Token no encontrado. Por favor, inicia sesión nuevamente.');
       }
 
-      const response = await axios.get('https://impulso-local-back.onrender.com/api/inscriptions/tables', {
+      const response = await axios.get(config.urls.tables, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -59,7 +60,7 @@ export default function ListTables() {
   const fetchAvailableTables = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get('https://impulso-local-back.onrender.com/api/inscriptions/tables', {
+      const response = await axios.get(config.urls.tables, {
         headers: { Authorization: `Bearer ${token}` },
         params: { tableType: 'all' },
       });
@@ -87,7 +88,7 @@ export default function ListTables() {
       setShowTableFields(false); // Ocultar los campos si ya se están mostrando
     } else {
       try {
-        const response = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/fields`, {
+        const response = await axios.get(`${config.urls.tables}/${tableName}/fields`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -117,7 +118,7 @@ export default function ListTables() {
   const fetchRelatedTableFields = async (relatedTable) => {
     const token = localStorage.getItem('token');
     try {
-      const response = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${relatedTable}/fields`, {
+      const response = await axios.get(`${config.urls.tables}/${relatedTable}/fields`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -147,7 +148,7 @@ export default function ListTables() {
     }
 
     try {
-      const response = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/csv-template`, {
+      const response = await axios.get(`${config.urls.tables}/${tableName}/csv-template`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -173,7 +174,7 @@ export default function ListTables() {
     }
 
     try {
-      const response = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/download-csv`, {
+      const response = await axios.get(`${config.urls.tables}/${tableName}/download-csv`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -207,7 +208,7 @@ export default function ListTables() {
     formData.append('file', file);
 
     try {
-      await axios.post(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/upload-csv`, formData, {
+      await axios.post(`${config.urls.tables}/${tableName}/upload-csv`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -228,7 +229,7 @@ export default function ListTables() {
     }
 
     try {
-      await axios.delete(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}`, {
+      await axios.delete(`${config.urls.tables}/${tableName}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -291,7 +292,7 @@ export default function ListTables() {
       const fieldsToDelete = fields.filter((field) => field.toDelete);
 
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${selectedTable}`,
+        `${config.urls.tables}/${selectedTable}`,
         {
           fieldsToAdd,
           fieldsToDelete,
@@ -316,7 +317,7 @@ export default function ListTables() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/principal`,
+        `${config.urls.tables}/${tableName}/principal`,
         { is_primary: !isPrimary },
         {
           headers: {

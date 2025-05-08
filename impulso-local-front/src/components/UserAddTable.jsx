@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import config from '../config';
 import './css/UserAddTable.css'; // Importamos el archivo CSS personalizado
 
 export default function UserAddTable() {
@@ -25,7 +26,7 @@ export default function UserAddTable() {
     const fetchTables = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('https://impulso-local-back.onrender.com/api/inscriptions/tables', {
+        const response = await axios.get(config.urls.tables, {
           headers: { Authorization: `Bearer ${token}` },
           params: { tableType: 'all' }, // Obtener todas las tablas
         });
@@ -43,7 +44,7 @@ export default function UserAddTable() {
     const token = localStorage.getItem('token');
     try {
       const response = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${relatedTable}/fields`,
+        `${config.urls.tables}/${relatedTable}/fields`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -103,9 +104,13 @@ export default function UserAddTable() {
       const tableData = { table_name: prefixedTableName, fields };
       console.log('Datos enviados al backend:', tableData); // Verificar los datos antes de enviarlos
 
-      await axios.post('https://impulso-local-back.onrender.com/api/inscriptions/create-table', tableData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.post(
+        `${config.urls.inscriptions}/create-table`,
+        tableData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       setSuccessMessage('Tabla creada con éxito');
       // Reiniciar el formulario
