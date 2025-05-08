@@ -47,7 +47,7 @@ export default function CapacitacionTab({ id }) {
         }
 
         const response = await axios.get(
-          `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_capacitacion/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.base}/pi/tables/pi_capacitacion/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -110,7 +110,7 @@ export default function CapacitacionTab({ id }) {
 
       // Guardar en BD
       await axios.put(
-        `${config.urls.inscriptions.base}/api/inscriptions/pi/tables/pi_capacitacion/record/${recordId}`,
+        `${config.urls.inscriptions.base}/pi/tables/pi_capacitacion/record/${recordId}`,
         updatedRecord,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -140,7 +140,7 @@ export default function CapacitacionTab({ id }) {
     try {
       const token = localStorage.getItem("token");
       const historyResponse = await axios.get(
-        `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_capacitacion/record/${recordId}/history`,
+        `${config.urls.inscriptions.base}/tables/pi_capacitacion/record/${recordId}/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setHistory(historyResponse.data.history || []);
