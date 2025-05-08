@@ -48,6 +48,7 @@ app.listen(PORT, async () => {
     console.log('Base de datos sincronizada');
     
     // Crear permisos por defecto
+    /*
     try {
       const Permission = require('./src/models/Permission')(sequelize, require('sequelize').DataTypes);
       const defaultPermissions = [
@@ -65,6 +66,7 @@ app.listen(PORT, async () => {
     } catch (error) {
       console.error('Error creando permisos:', error);
     }
+    */
 
     console.log(`Servidor corriendo en el puerto ${PORT}`);
   } catch (error) {
