@@ -3,7 +3,7 @@ const config = {
   // URLs base para diferentes entornos
   baseUrls: {
     local: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',
-    production: import.meta.env.VITE_API_URL || 'https://tu-backend.onrender.com/api'
+    production: import.meta.env.VITE_API_URL || 'https://usme-3ofa.onrender.com/api'
   },
   
   // URL actual basada en el entorno
