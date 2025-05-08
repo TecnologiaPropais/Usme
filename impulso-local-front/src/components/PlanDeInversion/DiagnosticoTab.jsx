@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
+import config from '../../config';
 
 export default function DiagnosticoTab({ id }) {
   const initialQuestions = [
@@ -164,7 +165,7 @@ export default function DiagnosticoTab({ id }) {
 
         // Ajustado a microempresa-local-back
         const response = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -237,7 +238,7 @@ export default function DiagnosticoTab({ id }) {
           if (newRecordIds[question.text.trim()]) {
             // update
             const updatePromise = axios.put(
-              `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_diagnostico_cap/record/${newRecordIds[question.text.trim()]}`,
+              `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record/${newRecordIds[question.text.trim()]}`,
               requestData,
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -246,7 +247,7 @@ export default function DiagnosticoTab({ id }) {
             // create
             const createPromise = axios
               .post(
-                `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_diagnostico_cap/record`,
+                `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record`,
                 requestData,
                 { headers: { Authorization: `Bearer ${token}` } }
               )
@@ -293,7 +294,7 @@ export default function DiagnosticoTab({ id }) {
     try {
       // Buscar si hay registro en pi_capacitacion
       const resGet = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_capacitacion/records?caracterizacion_id=${caracterizacion_id}`,
+        `${config.urls.inscriptions.pi}/tables/pi_capacitacion/records?caracterizacion_id=${caracterizacion_id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -307,7 +308,7 @@ export default function DiagnosticoTab({ id }) {
           recommended_codes: codesString,
         };
         await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_capacitacion/record`,
+          `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record`,
           newRecord,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -321,7 +322,7 @@ export default function DiagnosticoTab({ id }) {
           recommended_codes: codesString,
         };
         await axios.put(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_capacitacion/record/${recordId}`,
+          `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record/${recordId}`,
           updatedRecord,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -345,7 +346,7 @@ export default function DiagnosticoTab({ id }) {
 
       const historyPromises = recordIdValues.map((rid) =>
         axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_diagnostico_cap/record/${rid}/history`,
+          `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record/${rid}/history`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

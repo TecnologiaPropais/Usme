@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/UserAdd.css'; // Archivo de estilos separado
+import config from '../config';
 
 export default function UserAdd() {
   const [username, setUsername] = useState('');
@@ -17,7 +18,7 @@ export default function UserAdd() {
     const fetchRoles = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get('https://impulso-local-back.onrender.com/api/roles', {
+        const response = await axios.get(config.urls.roles, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -38,7 +39,7 @@ export default function UserAdd() {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
-        'https://impulso-local-back.onrender.com/api/users',
+        config.urls.users,
         { username, email, password, role_id: roleId },
         {
           headers: {

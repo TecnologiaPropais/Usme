@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import config from '../../config';
 
 export default function PropuestaMejoraTab({ id }) {
   const [fields, setFields] = useState([]);
@@ -25,14 +26,14 @@ export default function PropuestaMejoraTab({ id }) {
 
         // Obtener campos de la tabla
         const fieldsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/fields`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/fields`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setFields(fieldsResponse.data);
 
         // Obtener todos los registros con el mismo `caracterizacion_id`
         const recordsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setRecords(recordsResponse.data);
@@ -63,7 +64,7 @@ export default function PropuestaMejoraTab({ id }) {
 
       // Crear un nuevo registro
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
         recordData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -73,7 +74,7 @@ export default function PropuestaMejoraTab({ id }) {
 
       // Actualizar los registros después de agregar un nuevo registro
       const updatedRecords = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRecords(updatedRecords.data);
@@ -87,7 +88,7 @@ export default function PropuestaMejoraTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record/${recordId}`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/record/${recordId}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setRecords((prevRecords) =>
@@ -117,7 +118,7 @@ export default function PropuestaMejoraTab({ id }) {
       // Realizar solicitudes de historial para cada registro y combinarlas
       const historyPromises = records.map((record) =>
         axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${record.id}/history`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record/${record.id}/history`,
           {
             headers: {
               Authorization: `Bearer ${token}`,

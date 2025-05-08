@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './css/PublicRecordCreate.css';
+import config from '../config';
 
 function Modal({ show, onClose, message, type }) {
   if (!show) return null;
@@ -179,7 +180,7 @@ export default function PublicRecordCreate() {
     const fetchFieldsData = async () => {
       try {
         const fieldsResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/fields`
+          `${config.baseUrl}/inscriptions/tables/${tableName}/fields`
         );
 
         // Excluir además el campo "Acepta terminos"
@@ -197,7 +198,7 @@ export default function PublicRecordCreate() {
         setFields(filteredFields);
 
         const relatedDataResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/related-data`
+          `${config.baseUrl}/inscriptions/tables/${tableName}/related-data`
         );
         setRelatedData(relatedDataResponse.data.relatedData || {});
         setLoading(false);
@@ -276,7 +277,7 @@ export default function PublicRecordCreate() {
   const validateField = async (fieldName, fieldValue) => {
     try {
       const response = await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/validate`,
+        `${config.baseUrl}/inscriptions/tables/${tableName}/validate`,
         { fieldName, fieldValue }
       );
 
@@ -444,7 +445,7 @@ export default function PublicRecordCreate() {
       };
 
       const recordResponse = await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/create`,
+        `${config.baseUrl}/inscriptions/tables/${tableName}/record/create`,
         recordToSubmit,
         {
           headers: {
@@ -468,7 +469,7 @@ export default function PublicRecordCreate() {
           formData.append('fileType', fileItem.type);
 
           return axios.post(
-            `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${createdRecordId}/upload`,
+            config.urls.files.upload(tableName, createdRecordId),
             formData,
             {
               headers: {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './css/UserView.css'; // Archivo de estilos separado
+import config from '../config';
 
 export default function UserView() {
   const { id } = useParams(); // Obtener el ID del usuario desde la URL
@@ -22,10 +23,8 @@ export default function UserView() {
         }
 
         // Obtener la información del usuario
-        const userResponse = await axios.get(`https://impulso-local-back.onrender.com/api/users/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await axios.get(`${config.urls.users}/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         // Obtener los roles disponibles
@@ -35,12 +34,12 @@ export default function UserView() {
           },
         });
 
-        setUser(userResponse.data);
+        setUser(response.data);
         setRoles(rolesResponse.data); // Almacenar los roles obtenidos
         setUpdatedData({
-          username: userResponse.data.username,
-          email: userResponse.data.email,
-          role_id: userResponse.data.role_id, // Almacenar el ID del rol actual
+          username: response.data.username,
+          email: response.data.email,
+          role_id: response.data.role_id, // Almacenar el ID del rol actual
         });
         setLoading(false);
       } catch (error) {
@@ -63,13 +62,9 @@ export default function UserView() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `https://impulso-local-back.onrender.com/api/users/${id}`,
+        `${config.urls.users}/${id}`,
         { ...updatedData },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setAlert({ message: 'Datos actualizados con éxito', type: 'success' });
       setEditMode(false);

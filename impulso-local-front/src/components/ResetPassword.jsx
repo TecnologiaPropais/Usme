@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './css/Login.css'; // Usamos el mismo archivo de estilos que el login
 import logo from '../assets/img/Impulso.png'; // Importa el logo
+import config from '../config';
 
 export default function ResetPassword() {
   const { token } = useParams();  // Obtener el token de la URL
@@ -27,7 +28,7 @@ export default function ResetPassword() {
     }
 
     try {
-      const response = await axios.post(`https://impulso-local-back.onrender.com/api/users/reset-password/${token}`, { newPassword });
+      const response = await axios.post(config.urls.auth.resetPassword(token), { newPassword });
 
       if (response.status === 200) {
         setAlert({ message: 'Contraseña restablecida con éxito', type: 'success' });

@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import config from '../../config';
 
 export default function EncuestaSalidaTab({ id }) {
   const initialQuestions = [
@@ -247,7 +248,7 @@ export default function EncuestaSalidaTab({ id }) {
 
         // Obtener registros existentes de la encuesta
         const response = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -280,7 +281,7 @@ export default function EncuestaSalidaTab({ id }) {
 
         // Ahora obtener datos de inscription_caracterizacion
         const carResponse = await axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/inscription_caracterizacion/record/${id}`, 
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setCaracterizacionData(carResponse.data.record || {});
@@ -339,14 +340,14 @@ export default function EncuestaSalidaTab({ id }) {
 
               if (rec.record_id) {
                 const updatePromise = axios.put(
-                  `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record/${rec.record_id}`,
+                  `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${rec.record_id}`,
                   requestData,
                   { headers: { Authorization: `Bearer ${token}` } }
                 );
                 requests.push(updatePromise);
               } else {
                 const createPromise = axios.post(
-                  `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record`,
+                  `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
                   requestData,
                   { headers: { Authorization: `Bearer ${token}` } }
                 ).then(res => {
@@ -377,14 +378,14 @@ export default function EncuestaSalidaTab({ id }) {
                   };
                   if (openRec.record_id) {
                     const updatePromise = axios.put(
-                      `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record/${openRec.record_id}`,
+                      `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${openRec.record_id}`,
                       requestData,
                       { headers: { Authorization: `Bearer ${token}` } }
                     );
                     requests.push(updatePromise);
                   } else {
                     const createPromise = axios.post(
-                      `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record`,
+                      `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
                       requestData,
                       { headers: { Authorization: `Bearer ${token}` } }
                     ).then(res => {
@@ -413,14 +414,14 @@ export default function EncuestaSalidaTab({ id }) {
 
             if (rec.record_id) {
               const updatePromise = axios.put(
-                `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record/${rec.record_id}`,
+                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${rec.record_id}`,
                 requestData,
                 { headers: { Authorization: `Bearer ${token}` } }
               );
               requests.push(updatePromise);
             } else {
               const createPromise = axios.post(
-                `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/pi_encuesta_salida/record`,
+                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
                 requestData,
                 { headers: { Authorization: `Bearer ${token}` } }
               ).then(res => {
@@ -462,7 +463,7 @@ export default function EncuestaSalidaTab({ id }) {
       const token = localStorage.getItem('token');
       const historyPromises = recordIds.map((rid) =>
         axios.get(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/pi_encuesta_salida/record/${rid}/history`,
+          `${config.urls.inscriptions.tables}/pi_encuesta_salida/record/${rid}/history`,
           { headers: { Authorization: `Bearer ${token}` } }
         )
       );

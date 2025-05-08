@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import config from '../../config';
 
 export default function ValidacionesTab({ id }) {
   const [fields, setFields] = useState([]);
@@ -27,7 +28,7 @@ export default function ValidacionesTab({ id }) {
 
       // Aquí usamos el caracterizacion_id (id), igual que en AnexosTab
       const filesResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/files`,
+        `${config.urls.inscriptions.tables}/${tableName}/record/${id}/files`,
         { headers: { Authorization: `Bearer ${token}` }, params: { source: 'validaciones' } }
       );
 
@@ -51,14 +52,14 @@ export default function ValidacionesTab({ id }) {
 
       // Obtener campos
       const fieldsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/fields`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/fields`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setFields(fieldsResponse.data);
 
       // Obtener registro pi_validaciones por caracterizacion_id
       const recordsResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -70,7 +71,7 @@ export default function ValidacionesTab({ id }) {
         // Crear registro si no existe
         const userId = localStorage.getItem('id');
         const createResponse = await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
           { caracterizacion_id: id, user_id: userId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -106,14 +107,14 @@ export default function ValidacionesTab({ id }) {
 
       if (recordId) {
         await axios.put(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record/${recordId}`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record/${recordId}`,
           updatedDataWithUser,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         alert('Validación actualizada exitosamente');
       } else {
         const createResponse = await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
           updatedDataWithUser,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -154,7 +155,7 @@ export default function ValidacionesTab({ id }) {
       formData.append('source', 'validaciones');
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/upload`,
+        `${config.urls.inscriptions.tables}/${tableName}/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -181,7 +182,7 @@ export default function ValidacionesTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/file/${fileId}`,
+          `${config.urls.inscriptions.tables}/${tableName}/record/${id}/file/${fileId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
             data: { user_id: userId } // Enviar user_id en el body
@@ -208,7 +209,7 @@ export default function ValidacionesTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${recordId}/history`,
+        `${config.urls.inscriptions.tables}/${tableName}/record/${recordId}/history`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       const fetchedHistory = historyResponse.data.history || [];

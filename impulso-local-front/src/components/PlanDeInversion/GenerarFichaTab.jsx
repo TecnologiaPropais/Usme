@@ -5,6 +5,7 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import axios from 'axios';
 import PropTypes from 'prop-types';
+import config from '../../config';
 
 // Ruta de la imagen del banner en la carpeta public
 const bannerImagePath = '/impulso-local-banner-pdf.jpeg';
@@ -86,11 +87,11 @@ export default function GenerarFichaTab({ id }) {
           propuestaMejoraResponse,
           formulacionResponse
         ] = await Promise.all([
-          axios.get(`${baseURL}/tables/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${baseURL}/pi/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${baseURL}/pi/tables/pi_datos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${baseURL}/pi/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${baseURL}/pi/tables/pi_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_datos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
         // 1. Procesar datos de `inscription_caracterizacion`
@@ -484,7 +485,7 @@ export default function GenerarFichaTab({ id }) {
 
       // Actualizar textoViabilidad con el nuevo contenido
       const textoViabilidad = [
-        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial del beneficiario denominado ${nombreEmprendimiento} y haciendo parte del equipo ejecutor del programa “Impulso Local 4.0” que emana del Convenio Interadministrativo suscrito entre la Corporación para el Desarrollo de las Microempresas – PROPAIS y el Fondo de desarrollo local, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa.`,
+        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial del beneficiario denominado ${nombreEmprendimiento} y haciendo parte del equipo ejecutor del programa "Impulso Local 4.0" que emana del Convenio Interadministrativo suscrito entre la Corporación para el Desarrollo de las Microempresas – PROPAIS y el Fondo de desarrollo local, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa.`,
         "",
         "NOTA: Declaro que toda la información sobre el plan de inversión aquí consignada fue diligenciada en conjunto con el asesor empresarial a cargo, está de acuerdo con las condiciones del negocio, es verdadera, completa y correcta, la cual puede ser verificada en cualquier momento.",
         "",

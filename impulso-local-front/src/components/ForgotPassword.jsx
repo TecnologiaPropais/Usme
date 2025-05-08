@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './css/Login.css'; // Usamos el mismo archivo de estilos que el login
 import logo from '../assets/img/Impulso.png'; // Importa el logo
+import config from '../config';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -20,7 +21,7 @@ export default function ForgotPassword() {
     e.preventDefault();
 
     try {
-      const response = await axios.post('https://impulso-local-back.onrender.com/api/users/forgot-password', { email });
+      const response = await axios.post(config.urls.auth.forgotPassword, { email });
 
       if (response.status === 200) {
         setAlert({

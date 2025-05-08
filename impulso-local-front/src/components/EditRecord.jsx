@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
+import config from '../config';
 
 export default function EditRecord() {
   const { tableName, id } = useParams(); // Obtener el nombre de la tabla y el ID desde la URL
@@ -18,7 +19,7 @@ export default function EditRecord() {
         const token = localStorage.getItem('token');
 
         // Obtener los campos de la tabla
-        const fieldsResponse = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/fields`, {
+        const fieldsResponse = await axios.get(`${config.urls.inscriptions.tables}/${tableName}/fields`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -26,7 +27,7 @@ export default function EditRecord() {
         setFields(fieldsResponse.data);
 
         // Obtener los datos del registro
-        const recordResponse = await axios.get(`https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/records/${id}`, {
+        const recordResponse = await axios.get(`${config.urls.inscriptions.tables}/${tableName}/records/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },

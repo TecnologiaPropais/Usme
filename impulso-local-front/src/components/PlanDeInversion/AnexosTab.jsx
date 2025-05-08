@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import config from '../../config';
 
 export default function AnexosTab({ id }) {
   const [data, setData] = useState({});
@@ -25,7 +26,7 @@ export default function AnexosTab({ id }) {
       }
 
       const response = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/records?caracterizacion_id=${id}`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -38,7 +39,7 @@ export default function AnexosTab({ id }) {
         // Crear registro con user_id si el backend lo necesita
         const userId = localStorage.getItem('id');
         const createResponse = await axios.post(
-          `https://impulso-local-back.onrender.com/api/inscriptions/pi/tables/${tableName}/record`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
           { caracterizacion_id: id, user_id: userId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -63,7 +64,7 @@ export default function AnexosTab({ id }) {
       if (!token) return;
 
       const filesResponse = await axios.get(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/files`,
+        `${config.urls.inscriptions.tables}/${tableName}/record/${id}/files`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -130,7 +131,7 @@ export default function AnexosTab({ id }) {
       formData.append('user_id', userId);
 
       await axios.post(
-        `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/upload`,
+        `${config.urls.inscriptions.tables}/${tableName}/record/${id}/upload`,
         formData,
         {
           headers: {
@@ -156,12 +157,12 @@ export default function AnexosTab({ id }) {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
         await axios.delete(
-          `https://impulso-local-back.onrender.com/api/inscriptions/tables/${tableName}/record/${id}/file/${fileId}`,
+          `${config.urls.inscriptions.tables}/${tableName}/record/${id}/file/${fileId}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-            data: { user_id: userId } // Enviar user_id en el body para el DELETE
+            data: { user_id: userId }
           }
         );
 

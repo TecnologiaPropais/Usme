@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom'; // Importar useNavigate
 import './css/UsersList.css'; // Archivo de estilos separado
+import config from '../config';
 
 export default function UsersList() {
   const [users, setUsers] = useState([]);
@@ -20,10 +21,8 @@ export default function UsersList() {
           throw new Error('Token no encontrado. Por favor, inicia sesión nuevamente.');
         }
 
-        const response = await axios.get('https://impulso-local-back.onrender.com/api/users', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const response = await axios.get(config.urls.users, {
+          headers: { Authorization: `Bearer ${token}` },
         });
 
         setUsers(response.data);
@@ -43,7 +42,7 @@ export default function UsersList() {
       const token = localStorage.getItem('token');
       const newStatus = currentStatus === 1 ? 0 : 1;
 
-      await axios.put(`https://impulso-local-back.onrender.com/api/users/${id}/toggle-status`, { status: newStatus }, {
+      await axios.put(`${config.urls.users}/${id}/toggle-status`, { status: newStatus }, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
