@@ -46,7 +46,7 @@ export default function FormulacionTab({ id }) {
     if (!token) return;
 
     const filesResponse = await axios.get(
-      `${config.urls.inscriptions.base}/api/inscriptions/tables/pi_formulacion/record/${id}/files`,
+      `${config.urls.inscriptions.base}/tables/pi_formulacion/record/${id}/files`,
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -216,7 +216,7 @@ export default function FormulacionTab({ id }) {
             headers: {
               Authorization: `Bearer ${token}`,
             },
-            data: { user_id: userId } // Enviamos user_id en DELETE
+            data: { user_id: userId }
           }
         );
 
