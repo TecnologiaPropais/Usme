@@ -3,14 +3,17 @@
 const express = require('express');
 const cors = require('cors');
 const sequelize = require('./src/utils/sequelize');
+const path = require('path');
+require('dotenv').config();
+
+// Cargar las asociaciones entre modelos primero
+require('./src/models/associations');
+
 const userRoutes = require('./src/routes/userRoutes');
 const roleRoutes = require('./src/routes/roleRoutes');
 const permissionRoutes = require('./src/routes/permissionRoutes');
 const rolePermissionRoutes = require('./src/routes/rolePermissionRoutes');
-const inscriptionRoutes = require('./src/routes/inscriptionRoutes'); // Importar las rutas de inscripción
-const path = require('path');
-require('dotenv').config();
-require('./src/models/associations'); // Cargar las asociaciones entre modelos
+const inscriptionRoutes = require('./src/routes/inscriptionRoutes');
 const Role = require('./src/models/Role');
 const Permission = require('./src/models/Permission');
 

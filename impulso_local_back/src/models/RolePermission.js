@@ -24,7 +24,7 @@ const RolePermission = sequelize.define('RolePermission', {
 });
 
 // Relaciones de muchos a muchos
-Role.belongsToMany(Permission, { through: RolePermission, foreignKey: 'role_id' });
-Permission.belongsToMany(Role, { through: RolePermission, foreignKey: 'permission_id' });
+Role.belongsToMany(Permission, { through: RolePermission, foreignKey: 'role_id', as: 'permissions' });
+Permission.belongsToMany(Role, { through: RolePermission, foreignKey: 'permission_id', as: 'roles' });
 
 module.exports = RolePermission;
