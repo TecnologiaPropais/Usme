@@ -85,7 +85,7 @@ export default function DynamicTableList() {
 
       // Obtener campos con información completa
       const fieldsResponse = await axios.get(
-        `${config.urls.inscriptions}/tables/${tableName}/fields`,
+        `${config.urls.inscriptions.base}/tables/${tableName}/fields`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -116,7 +116,7 @@ export default function DynamicTableList() {
 
       // Obtener registros
       const recordsResponse = await axios.get(
-        `${config.urls.inscriptions}/tables/${tableName}/records`,
+        `${config.urls.inscriptions.base}/tables/${tableName}/records`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -146,7 +146,7 @@ export default function DynamicTableList() {
 
       // Obtener datos relacionados
       const relatedDataResponse = await axios.get(
-        `${config.urls.inscriptions}/tables/${tableName}/related-data`,
+        `${config.urls.inscriptions.base}/tables/${tableName}/related-data`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
