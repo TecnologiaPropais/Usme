@@ -277,7 +277,7 @@ export default function FormulacionProvTab({ id }) {
         const provider = piRecord.providerData;
         if (provider) {
           const rubroName = getRubroName(provider.Rubro);
-          const precioCatalogo = parseFloat(provider["Valor catalogo"]) || 0;
+          const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
           const cantidad = parseFloat(piRecord.Cantidad) || 1;
           const totalPrice = precioCatalogo * cantidad;
 
@@ -292,13 +292,14 @@ export default function FormulacionProvTab({ id }) {
 
     return Object.entries(rubroMap).map(([rubro, total]) => ({
       rubro,
-      total: total.toFixed(2),
+      total: total,
+      totalFormateado: total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 })
     }));
   }, [piFormulacionRecords, rubros]);
 
   const totalInversion = groupedRubros
     .reduce((acc, record) => acc + parseFloat(record.total || 0), 0)
-    .toFixed(2);
+    .toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
   const selectedRecords = piFormulacionRecords
     .filter((piRecord) => piRecord["Seleccion"]);
@@ -538,7 +539,7 @@ export default function FormulacionProvTab({ id }) {
                   {groupedRubros.map((record) => (
                     <tr key={record.rubro}>
                       <td>{record.rubro}</td>
-                      <td>{record.total}</td>
+                      <td>{record.totalFormateado}</td>
                     </tr>
                   ))}
                 </tbody>
