@@ -328,6 +328,8 @@ export default function PiTableList() {
                                   {record["Nombre del emprendimiento"]}
                                 </td>
                                 <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
+                                {console.log('USERS:', users)}
+                                {console.log('RECORD.ASESOR:', record.Asesor)}
                                 <td>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
                                 <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
                                 <td>
