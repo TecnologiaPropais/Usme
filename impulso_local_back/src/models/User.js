@@ -17,6 +17,10 @@ const User = sequelize.define('User', {
     type: DataTypes.STRING,
     allowNull: false,
   },
+  documento: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   role_id: {
     type: DataTypes.INTEGER,
     references: {
