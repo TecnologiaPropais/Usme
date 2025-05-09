@@ -169,7 +169,7 @@ export default function PiTableList() {
         );
         setEstados(estadosRes.data);
         const usersRes = await axios.get(
-          `${config.urls.tables}/users/records`,
+          `${config.urls.api}/users`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setUsers(usersRes.data);
