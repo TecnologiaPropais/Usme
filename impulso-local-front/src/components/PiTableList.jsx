@@ -329,7 +329,7 @@ export default function PiTableList() {
                                   </div>
                                   <div style={{fontSize: '0.9em', color: '#888'}}>
                                     <i className="fas fa-envelope" style={{marginRight: 4}}></i>
-                                    {record.Correo || record.email || (users.find(u => String(u.id) === String(record.Asesor))?.email) || ''}
+                                    {record["Correo electronico"] || ''}
                                   </div>
                                 </td>
                                 <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
