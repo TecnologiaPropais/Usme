@@ -19,6 +19,9 @@ export default function PiTableList() {
   const [multiSelectFields, setMultiSelectFields] = useState([]);
   const [relatedData, setRelatedData] = useState({}); // Para datos relacionados de claves foráneas
 
+  const [localidades, setLocalidades] = useState([]);
+  const [estados, setEstados] = useState([]);
+
   const navigate = useNavigate();
 
   const tableName = 'inscription_caracterizacion';
@@ -150,6 +153,25 @@ export default function PiTableList() {
   // Cargar los datos al montar el componente
   useEffect(() => {
     fetchTableData();
+    // Cargar localidades y estados
+    const fetchRelatedData = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const localidadesRes = await axios.get(
+          `${config.urls.tables}/inscription_localidad_de_la_unidad_de_negocio/records`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setLocalidades(localidadesRes.data);
+        const estadosRes = await axios.get(
+          `${config.urls.tables}/inscription_estado/records`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setEstados(estadosRes.data);
+      } catch (err) {
+        // No romper si falla
+      }
+    };
+    fetchRelatedData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
@@ -299,9 +321,9 @@ export default function PiTableList() {
                                 <td style={{ maxWidth: 350, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {record["Nombre del emprendimiento"]}
                                 </td>
-                                <td>{record["Localidad de la unidad de negocio"]}</td>
+                                <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.Nombre || record["Localidad de la unidad de negocio"] || '' )}</td>
                                 <td>{record.Asesor}</td>
-                                <td>{record.Estado}</td>
+                                <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Nombre || record.Estado || '')}</td>
                                 <td>
                                   <button
                                     className="btn btn-sm btn-primary mb-1"
