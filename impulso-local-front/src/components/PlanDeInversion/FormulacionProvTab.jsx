@@ -501,7 +501,9 @@ export default function FormulacionProvTab({ id }) {
 
                     const cantidad = parseFloat(piRecord.Cantidad) || 1;
                     const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
-                    const total = (precioCatalogo * cantidad).toFixed(2);
+                    const total = (precioCatalogo * cantidad);
+                    const precioFormateado = precioCatalogo.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
+                    const totalFormateado = total.toLocaleString('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 });
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
@@ -509,9 +511,9 @@ export default function FormulacionProvTab({ id }) {
                         <td>{getRubroName(provider.Rubro)}</td>
                         <td>{getElementoName(provider.Elemento)}</td>
                         <td>{provider["Descripcion corta"] || ''}</td>
-                        <td>{provider["Valor Catalogo y/o referencia"]}</td>
+                        <td>{precioFormateado}</td>
                         <td>{cantidad}</td>
-                        <td>{total}</td>
+                        <td>{totalFormateado}</td>
                       </tr>
                     );
                   })}
