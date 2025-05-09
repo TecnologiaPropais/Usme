@@ -21,6 +21,7 @@ export default function PiTableList() {
 
   const [localidades, setLocalidades] = useState([]);
   const [estados, setEstados] = useState([]);
+  const [users, setUsers] = useState([]);
 
   const navigate = useNavigate();
 
@@ -167,6 +168,11 @@ export default function PiTableList() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setEstados(estadosRes.data);
+        const usersRes = await axios.get(
+          `${config.urls.tables}/users/records`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setUsers(usersRes.data);
       } catch (err) {
         // No romper si falla
       }
@@ -318,11 +324,11 @@ export default function PiTableList() {
                               <tr key={record.id}>
                                 <td>{record.id}</td>
                                 <td>{(record.Nombres || '') + ' ' + (record.Apellidos || '')}</td>
-                                <td style={{ maxWidth: 350, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   {record["Nombre del emprendimiento"]}
                                 </td>
                                 <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                <td>{record.Asesor}</td>
+                                <td>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
                                 <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
                                 <td>
                                   <button
