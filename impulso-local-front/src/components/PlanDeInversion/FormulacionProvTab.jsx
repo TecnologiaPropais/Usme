@@ -178,12 +178,14 @@ export default function FormulacionProvTab({ id }) {
   const handleCantidadChange = async (recordId, cantidad) => {
     try {
       const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('id');
       const existingPiData = getPiFormulacionData(recordId);
 
       const recordData = {
         caracterizacion_id: id,
         rel_id_prov: recordId,
         Cantidad: cantidad,
+        user_id: userId,
       };
 
       const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
@@ -231,6 +233,7 @@ export default function FormulacionProvTab({ id }) {
   const handleApprovalChange = async (record, field, value) => {
     try {
       const token = localStorage.getItem('token');
+      const userId = localStorage.getItem('id');
       const existingPiData = getPiFormulacionData(record.id);
       const cantidad = existingPiData.Cantidad || 1;
 
@@ -238,6 +241,7 @@ export default function FormulacionProvTab({ id }) {
         caracterizacion_id: id,
         rel_id_prov: record.id,
         Cantidad: cantidad,
+        user_id: userId,
         [field]: value,
       };
 
