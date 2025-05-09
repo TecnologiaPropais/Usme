@@ -105,6 +105,7 @@ export default function Login() {
               placeholder="Correo electrónico"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
             />
             <div className="input-group-append">
               <div className="input-group-text">
@@ -119,6 +120,7 @@ export default function Login() {
               placeholder="Contraseña"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
             />
             <div className="input-group-append">
               <div className="input-group-text">
