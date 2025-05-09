@@ -22,7 +22,7 @@ export default function FormulacionProvTab({ id }) {
   const tableName = 'provider_proveedores';
   const rubroTableName = 'provider_rubro';
   const elementoTableName = 'provider_elemento';
-  const piFormulacionTableName = 'pi_formulacion';
+  const piFormulacionTableName = 'pi_formulacion_prov';
 
   const displayedFieldNames = [
     "Nombre proveedor",
