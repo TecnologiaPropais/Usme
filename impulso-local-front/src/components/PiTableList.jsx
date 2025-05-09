@@ -294,9 +294,9 @@ export default function PiTableList() {
                             displayedRecords.map((record) => (
                               <tr key={record.id}>
                                 <td>{record.id}</td>
-                                <td>{record.Nombre}</td>
-                                <td>{record.Empresa}</td>
-                                <td>{record.Localidad}</td>
+                                <td>{(record.Nombres || '') + ' ' + (record.Apellidos || '')}</td>
+                                <td>{record["Nombre del emprendimiento"]}</td>
+                                <td>{record["Localidad de la unidad de negocio"]}</td>
                                 <td>{record.Asesor}</td>
                                 <td>{record.Estado}</td>
                                 <td>
