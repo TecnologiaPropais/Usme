@@ -214,6 +214,16 @@ export default function PiTableList() {
       })
     : records;
 
+  // Columnas fijas para Listado Final
+  const fixedColumns = [
+    'id',
+    'Nombre',
+    'Empresa',
+    'Localidad',
+    'Asesor',
+    'Estado',
+  ];
+
   return (
     <div className="content-wrapper">
       {/* Cabecera */}
@@ -230,7 +240,6 @@ export default function PiTableList() {
               >
                 {showSearchBar ? 'Ocultar búsqueda' : 'Mostrar búsqueda'}
               </button>
-              {/* Eliminamos el selector de tablas */}
             </div>
           </div>
         </div>
@@ -254,7 +263,7 @@ export default function PiTableList() {
                           <input
                             type="text"
                             className="form-control search-input"
-                            placeholder="Buscar en columnas visibles..."
+                            placeholder="Buscar..."
                             value={search}
                             onChange={(e) => {
                               setSearch(e.target.value);
@@ -266,21 +275,7 @@ export default function PiTableList() {
                     </div>
                   )}
 
-                  {/* Select de columnas */}
-                  {columns.length > 0 && (
-                    <div className="form-group mb-3">
-                      <label>Selecciona las columnas a mostrar:</label>
-                      <select className="select2" multiple="multiple" style={{ width: '100%' }}>
-                        {columns.map((column) => (
-                          <option key={column} value={column}>
-                            {column}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-
-                  {/* Tabla con scroll horizontal fijo */}
+                  {/* Tabla con columnas fijas */}
                   <div className="table-responsive">
                     {loading ? (
                       <div className="d-flex justify-content-center p-3">Cargando...</div>
@@ -288,10 +283,9 @@ export default function PiTableList() {
                       <table className="table table-hover text-nowrap minimal-table">
                         <thead>
                           <tr>
-                            {visibleColumns.length > 0 &&
-                              visibleColumns.map((column) => (
-                                <th key={column}>{column}</th>
-                              ))}
+                            {fixedColumns.map((column) => (
+                              <th key={column}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
+                            ))}
                             <th>Acciones</th>
                           </tr>
                         </thead>
@@ -299,9 +293,12 @@ export default function PiTableList() {
                           {displayedRecords.length > 0 ? (
                             displayedRecords.map((record) => (
                               <tr key={record.id}>
-                                {visibleColumns.map((column) => (
-                                  <td key={column}>{getColumnDisplayValue(record, column)}</td>
-                                ))}
+                                <td>{record.id}</td>
+                                <td>{record.Nombre}</td>
+                                <td>{record.Empresa}</td>
+                                <td>{record.Localidad}</td>
+                                <td>{record.Asesor}</td>
+                                <td>{record.Estado}</td>
                                 <td>
                                   <button
                                     className="btn btn-sm btn-primary mb-1"
@@ -323,7 +320,7 @@ export default function PiTableList() {
                             ))
                           ) : (
                             <tr>
-                              <td colSpan={visibleColumns.length + 1} className="text-center">
+                              <td colSpan={fixedColumns.length + 1} className="text-center">
                                 No hay registros para mostrar.
                               </td>
                             </tr>
@@ -338,10 +335,7 @@ export default function PiTableList() {
                     <button
                       className="btn btn-secondary"
                       onClick={() => {
-                        setVisibleColumns(columns);
                         setSearch('');
-                        localStorage.removeItem('piVisibleColumns');
-                        localStorage.removeItem('piSearchQuery');
                         fetchTableData();
                       }}
                     >
