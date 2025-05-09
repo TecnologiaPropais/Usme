@@ -496,6 +496,9 @@ export default function FormulacionProvTab({ id }) {
                     const provider = piRecord.providerData;
                     if (!provider) return null;
 
+                    // Log para depuración
+                    console.log('Provider en productos seleccionados:', provider);
+
                     const cantidad = parseFloat(piRecord.Cantidad) || 1;
                     const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
                     const total = (precioCatalogo * cantidad).toFixed(2);
