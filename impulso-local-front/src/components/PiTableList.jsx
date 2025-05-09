@@ -323,9 +323,20 @@ export default function PiTableList() {
                             displayedRecords.map((record) => (
                               <tr key={record.id}>
                                 <td>{record.id}</td>
-                                <td>{(record.Nombres || '') + ' ' + (record.Apellidos || '')}</td>
+                                <td>
+                                  <div style={{fontWeight: 500}}>
+                                    {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
+                                  </div>
+                                  <div style={{fontSize: '0.9em', color: '#888'}}>
+                                    <i className="fas fa-envelope" style={{marginRight: 4}}></i>
+                                    {record.Correo || record.email || (users.find(u => String(u.id) === String(record.Asesor))?.email) || ''}
+                                  </div>
+                                </td>
                                 <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  {record["Nombre del emprendimiento"]}
+                                  <div>{record["Nombre del emprendimiento"]}</div>
+                                  <div style={{fontSize: '0.9em', color: '#888'}}>
+                                    CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
+                                  </div>
                                 </td>
                                 <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
                                 {console.log('USERS:', users)}
