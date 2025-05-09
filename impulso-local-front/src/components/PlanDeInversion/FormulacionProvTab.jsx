@@ -201,30 +201,8 @@ export default function FormulacionProvTab({ id }) {
         recordData.id = res.data.id;
       }
 
-      setPiFormulacionRecords((prevRecords) => {
-        const index = prevRecords.findIndex((rec) => String(rec.rel_id_prov) === String(recordId));
-        if (index !== -1) {
-          const updatedRecord = { ...prevRecords[index], Cantidad: cantidad };
-          return [
-            ...prevRecords.slice(0, index),
-            updatedRecord,
-            ...prevRecords.slice(index + 1),
-          ];
-        } else {
-          // No se encontraba el registro en el estado => lo traemos de la API y lo agregamos
-          axios.get(
-            `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ).then((res) => {
-            const providerData = res.data.record;
-            setPiFormulacionRecords((prev) => [
-              ...prev,
-              { ...recordData, providerData },
-            ]);
-          });
-          return prevRecords;
-        }
-      });
+      // Refrescar los datos después de la actualización
+      await fetchPiFormulacionRecords();
     } catch (error) {
       console.error('Error al cambiar la cantidad:', error);
     }
@@ -284,41 +262,8 @@ export default function FormulacionProvTab({ id }) {
         recordData.id = res.data.id;
       }
 
-      setPiFormulacionRecords((prevRecords) => {
-        const index = prevRecords.findIndex((rec) => String(rec.rel_id_prov) === String(record.id));
-        let updatedRecords;
-
-        if (index !== -1) {
-          const updatedRecord = { ...prevRecords[index], [field]: value };
-          if (field === "Seleccion") {
-            updatedRecord.selectionorder = value ? recordData.selectionorder : null;
-          }
-
-          updatedRecords = [
-            ...prevRecords.slice(0, index),
-            updatedRecord,
-            ...prevRecords.slice(index + 1),
-          ];
-        } else {
-          // Registro no existe en el estado, lo buscamos tras la creación
-          const newRecord = { ...recordData };
-          axios.get(
-            `${config.urls.inscriptions.base}/tables/${tableName}/record/${record.id}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ).then((res) => {
-            const providerData = res.data.record;
-            if (field === "Seleccion") {
-              newRecord.selectionorder = value ? recordData.selectionorder : null;
-            }
-            setPiFormulacionRecords((prev) => [
-              ...prev,
-              { ...newRecord, providerData },
-            ]);
-          });
-          updatedRecords = prevRecords;
-        }
-        return updatedRecords;
-      });
+      // Refrescar los datos después de la actualización
+      await fetchPiFormulacionRecords();
     } catch (error) {
       console.error('Error al cambiar la aprobación:', error);
     }
