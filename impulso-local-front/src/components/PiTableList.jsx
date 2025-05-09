@@ -204,15 +204,16 @@ export default function PiTableList() {
     }
   };
 
-  // Aplicar el filtro de búsqueda
-  const displayedRecords = search
+  // Aplicar el filtro de búsqueda y ordenar por id ascendente
+  const displayedRecords = (search
     ? records.filter((record) => {
         return visibleColumns.some((column) => {
           const value = getColumnDisplayValue(record, column);
           return value?.toString()?.toLowerCase().includes(search.toLowerCase());
         });
       })
-    : records;
+    : records
+  ).sort((a, b) => Number(a.id) - Number(b.id));
 
   // Columnas fijas para Listado Final
   const fixedColumns = [
