@@ -296,7 +296,9 @@ export default function PiTableList() {
                               <tr key={record.id}>
                                 <td>{record.id}</td>
                                 <td>{(record.Nombres || '') + ' ' + (record.Apellidos || '')}</td>
-                                <td>{record["Nombre del emprendimiento"]}</td>
+                                <td style={{ maxWidth: 350, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                  {record["Nombre del emprendimiento"]}
+                                </td>
                                 <td>{record["Localidad de la unidad de negocio"]}</td>
                                 <td>{record.Asesor}</td>
                                 <td>{record.Estado}</td>
