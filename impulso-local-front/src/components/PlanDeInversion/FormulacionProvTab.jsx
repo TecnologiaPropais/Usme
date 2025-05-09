@@ -102,47 +102,48 @@ export default function FormulacionProvTab({ id }) {
     fetchRecords();
   }, [selectedRubro, selectedElemento]);
 
-  useEffect(() => {
-    const fetchPiFormulacionRecords = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const piFormulacionUrl = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
-        const response = await axios.get(piFormulacionUrl, {
+  // Mover esta función fuera del useEffect
+  const fetchPiFormulacionRecords = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const piFormulacionUrl = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
+      const response = await axios.get(piFormulacionUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const piRecords = response.data;
+
+      // Filtrar solo IDs válidos
+      const providerIds = piRecords
+        .map((piRecord) => piRecord.rel_id_prov)
+        .filter((id) => id !== undefined && id !== null);
+
+      const providerPromises = providerIds.map((providerId) => {
+        const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
+        return axios.get(providerUrl, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const piRecords = response.data;
+      });
 
-        // Filtrar solo IDs válidos
-        const providerIds = piRecords
-          .map((piRecord) => piRecord.rel_id_prov)
-          .filter((id) => id !== undefined && id !== null);
+      const providersResponses = await Promise.all(providerPromises);
+      const providersData = providersResponses.map((res) => res.data.record);
 
-        const providerPromises = providerIds.map((providerId) => {
-          const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
-          return axios.get(providerUrl, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        });
+      const combinedData = piRecords.map((piRecord) => {
+        const providerData = providersData.find(
+          (provider) => String(provider.id) === String(piRecord.rel_id_prov)
+        );
+        return {
+          ...piRecord,
+          providerData,
+        };
+      });
 
-        const providersResponses = await Promise.all(providerPromises);
-        const providersData = providersResponses.map((res) => res.data.record);
+      setPiFormulacionRecords(combinedData);
+    } catch (error) {
+      console.error('Error obteniendo los registros de pi_formulacion:', error);
+    }
+  };
 
-        const combinedData = piRecords.map((piRecord) => {
-          const providerData = providersData.find(
-            (provider) => String(provider.id) === String(piRecord.rel_id_prov)
-          );
-          return {
-            ...piRecord,
-            providerData,
-          };
-        });
-
-        setPiFormulacionRecords(combinedData);
-      } catch (error) {
-        console.error('Error obteniendo los registros de pi_formulacion:', error);
-      }
-    };
-
+  useEffect(() => {
     if (id) {
       fetchPiFormulacionRecords();
     }
