@@ -2298,8 +2298,8 @@ exports.createTableRecord = async (req, res) => {
       // Buscar si existe un registro existente para la tabla
       let existingRecordId = null;
 
-      // Caso pi_formulacion: busca por caracterizacion_id + rel_id_prov
-      if (table_name === 'pi_formulacion') {
+      // Caso pi_formulacion y pi_formulacion_prov: busca por caracterizacion_id + rel_id_prov
+      if (table_name === 'pi_formulacion' || table_name === 'pi_formulacion_prov') {
         if (filteredData.caracterizacion_id && filteredData.rel_id_prov) {
           const checkQuery = `
             SELECT id FROM "${table_name}" WHERE caracterizacion_id = :caracterizacion_id AND rel_id_prov = :rel_id_prov
