@@ -323,7 +323,7 @@ export default function PiTableList() {
                                 </td>
                                 <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
                                 <td>{record.Asesor}</td>
-                                <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Nombre || record.Estado || '')}</td>
+                                <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
                                 <td>
                                   <button
                                     className="btn btn-sm btn-primary mb-1"
