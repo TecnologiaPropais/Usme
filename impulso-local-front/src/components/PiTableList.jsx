@@ -92,13 +92,6 @@ export default function PiTableList() {
 
       let filteredRecords = recordsResponse.data;
 
-      // Imprimir registros obtenidos
-      console.log('Registros obtenidos:', filteredRecords);
-
-      // Verificar los valores de 'Estado'
-      const estadoValues = filteredRecords.map((record) => record.Estado);
-      console.log('Valores de Estado:', estadoValues);
-
       // Filtrar los registros con Estado == 7
       filteredRecords = filteredRecords.filter((record) => {
         const estadoValue = record.Estado;
@@ -110,8 +103,6 @@ export default function PiTableList() {
         return estadoTrimmed === '7' || parseInt(estadoTrimmed, 10) === 7;
       });
 
-      console.log('Registros con Estado == 7:', filteredRecords);
-
       // === MODIFICACIÓN PRINCIPAL ===
       // Filtrar los registros según el role_id y el asesor (solo si role_id === '4')
       if (loggedUserRoleId === '4' && loggedUserId) {
@@ -119,7 +110,6 @@ export default function PiTableList() {
           (record) => String(record.Asesor) === String(loggedUserId)
         );
       }
-      // Si el usuario es 'SuperAdmin' (role_id '1'), no se aplica el filtro y se muestran todos los registros con Estado == 7
 
       // Obtener datos relacionados para claves foráneas
       const relatedDataResponse = await axios.get(
@@ -132,9 +122,7 @@ export default function PiTableList() {
       );
 
       setRelatedData(relatedDataResponse.data.relatedData || {});
-
       setRecords(filteredRecords);
-
       setLoading(false);
     } catch (error) {
       console.error('Error obteniendo los registros:', error);
@@ -339,8 +327,6 @@ export default function PiTableList() {
                                   </div>
                                 </td>
                                 <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                {console.log('USERS:', users)}
-                                {console.log('RECORD.ASESOR:', record.Asesor)}
                                 <td>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
                                 <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
                                 <td>
