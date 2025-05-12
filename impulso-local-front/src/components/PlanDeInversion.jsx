@@ -85,7 +85,7 @@ export default function PlanDeInversion() {
               Validaciones
             </a>
           </li>
-          <li className={`nav-item ${activeTab === 'Formulacion' ? 'active' : ''}`}>
+          {/*<li className={`nav-item ${activeTab === 'Formulacion' ? 'active' : ''}`}>
             <a
               href="#"
               className="nav-link"
@@ -96,7 +96,7 @@ export default function PlanDeInversion() {
             >
               Formulación
             </a>
-          </li>
+          </li>*/}
           <li className={`nav-item ${activeTab === 'FormulacionProv' ? 'active' : ''}`}>
             <a
               href="#"
