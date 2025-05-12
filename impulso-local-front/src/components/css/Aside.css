@@ -29,19 +29,23 @@
 /* Resto de los elementos del Aside */
 .main-sidebar .nav-sidebar > .nav-item > .nav-link {
     color: white;
+    transition: background 0.2s, color 0.2s;
 }
 
 .main-sidebar .nav-sidebar > .nav-item > .nav-link i {
     color: white;
 }
 
-.main-sidebar .nav-sidebar > .nav-item:hover > .nav-link {
-    background-color: #e61a4e;
+.main-sidebar .nav-sidebar > .nav-item:hover > .nav-link,
+.main-sidebar .nav-sidebar > .nav-item > .nav-link:focus {
+    background-color: #c21844; /* Sombreado más oscuro al pasar el mouse */
+    color: #fff;
 }
 
 .main-sidebar .nav-sidebar > .nav-item > .nav-link.active {
-    background-color: #e61a4e;
-    color: white;
+    background-color: #a01536; /* Sombreado aún más oscuro cuando está activo */
+    color: #fff;
+    box-shadow: 2px 0 8px rgba(0,0,0,0.08);
 }
 
 .main-sidebar .user-panel .info a {

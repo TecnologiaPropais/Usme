@@ -95,5 +95,14 @@ app.listen(PORT, async () => {
   }
 });
 
+// Manejadores globales de errores
+process.on('uncaughtException', function (err) {
+  console.error('Excepción no capturada:', err);
+});
+
+process.on('unhandledRejection', function (reason, promise) {
+  console.error('Rechazo no manejado en promesa:', promise, 'razón:', reason);
+});
+
 
 

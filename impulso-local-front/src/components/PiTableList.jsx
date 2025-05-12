@@ -27,6 +27,9 @@ export default function PiTableList() {
 
   const tableName = 'inscription_caracterizacion';
 
+  // Estado para la cantidad de registros por página
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
   // Funciones para obtener el ID y el role_id del usuario logueado desde el localStorage
   const getLoggedUserId = () => {
     return localStorage.getItem('id') || null;
@@ -231,6 +234,16 @@ export default function PiTableList() {
     : records
   ).sort((a, b) => Number(a.id) - Number(b.id));
 
+  // Obtener los IDs de estado presentes en los registros
+  const estadosPresentesIds = Array.from(new Set(displayedRecords.map(r => String(r.Estado))));
+  const estadosFiltrados = estados.filter(e => estadosPresentesIds.includes(String(e.id)));
+
+  // Obtener los IDs de asesores presentes en los registros
+  const asesoresPresentesIds = Array.from(new Set(displayedRecords.map(r => String(r.Asesor))));
+  const asesoresFiltrados = users.filter(
+    u => String(u.role_id) === "4" && asesoresPresentesIds.includes(String(u.id))
+  );
+
   // Columnas fijas para Listado Final
   const fixedColumns = [
     'id',
@@ -241,6 +254,24 @@ export default function PiTableList() {
     'Estado',
   ];
 
+  // Filtros
+  const [localidadFilter, setLocalidadFilter] = useState('');
+  const [estadoFilter, setEstadoFilter] = useState('');
+  const [asesorFilter, setAsesorFilter] = useState('');
+  const [asignacionFilter, setAsignacionFilter] = useState('');
+
+  // Lógica de filtrado
+  const filteredRecords = displayedRecords.filter((record) => {
+    const matchesLocalidad = !localidadFilter || String(record["Localidad de la unidad de negocio"]) === String(localidadFilter);
+    const matchesEstado = !estadoFilter || String(record.Estado) === String(estadoFilter);
+    const matchesAsesor = !asesorFilter || String(record.Asesor) === String(asesorFilter);
+    const matchesAsignacion = asignacionFilter === "si" ? record.Asesor : asignacionFilter === "no" ? !record.Asesor : true;
+    return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion;
+  });
+
+  // Al final del filtrado, limitar los registros a mostrar
+  const paginatedRecords = filteredRecords.slice(0, rowsPerPage);
+
   return (
     <div className="content-wrapper">
       {/* Cabecera */}
@@ -249,14 +280,6 @@ export default function PiTableList() {
           <div className="row mb-2">
             <div className="col-sm-6">
               <h1>Listado Final</h1>
-            </div>
-            <div className="col-sm-6 d-flex justify-content-end">
-              <button
-                className="btn btn-light mr-2"
-                onClick={() => setShowSearchBar(!showSearchBar)}
-              >
-                {showSearchBar ? 'Ocultar búsqueda' : 'Mostrar búsqueda'}
-              </button>
             </div>
           </div>
         </div>
@@ -273,24 +296,70 @@ export default function PiTableList() {
               <div className="card">
                 <div className="card-body">
                   {/* Barra de búsqueda */}
-                  {showSearchBar && (
-                    <div className="row mb-3">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            className="form-control search-input"
-                            placeholder="Buscar..."
-                            value={search}
-                            onChange={(e) => {
-                              setSearch(e.target.value);
-                              localStorage.setItem('piSearchQuery', e.target.value);
-                            }}
-                          />
-                        </div>
-                      </div>
+                  <div className="row mb-3">
+                    <div className="col-md-6" style={{ position: 'relative' }}>
+                      <i className="fas fa-search" style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: '#6c757d', fontSize: 16 }}></i>
+                      <input
+                        type="text"
+                        className="form-control buscador-input"
+                        style={{ color: '#000', paddingLeft: 40, width: '538px' }}
+                        placeholder="Buscador..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                      />
+                      <style>{`.buscador-input::placeholder { color: #6c757d !important; opacity: 1; }`}</style>
                     </div>
-                  )}
+                    <div className="col-md-6 d-flex justify-content-end align-items-center">
+                      <span style={{ marginRight: 8, color: '#6c757d', fontWeight: 500 }}>Mostrando</span>
+                      <select
+                        className="form-control"
+                        style={{ width: 80, display: 'inline-block', marginRight: 8 }}
+                        value={rowsPerPage}
+                        onChange={e => setRowsPerPage(Number(e.target.value))}
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span style={{ color: '#6c757d', fontWeight: 500 }}>Registros</span>
+                    </div>
+                  </div>
+
+                  {/* Filtros */}
+                  <div className="row mb-3">
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setLocalidadFilter(e.target.value)}>
+                        <option value="">Todas las Localidades</option>
+                        {localidades.map((loc) => (
+                          <option key={loc.id} value={loc.id}>{loc["Localidad de la unidad de negocio"]}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setEstadoFilter(e.target.value)}>
+                        <option value="">Todos los Estados</option>
+                        {estadosFiltrados.map((estado) => (
+                          <option key={estado.id} value={estado.id}>{estado.Estado}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setAsesorFilter(e.target.value)}>
+                        <option value="">Todos los Asesores</option>
+                        {asesoresFiltrados.map((user) => (
+                          <option key={user.id} value={user.id}>{user.username}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-sm-3">
+                      <select className="form-control" onChange={(e) => setAsignacionFilter(e.target.value)}>
+                        <option value="">Asignación Asesor</option>
+                        <option value="si">Sí</option>
+                        <option value="no">No</option>
+                      </select>
+                    </div>
+                  </div>
 
                   {/* Tabla con columnas fijas */}
                   <div className="table-responsive">
@@ -301,17 +370,17 @@ export default function PiTableList() {
                         <thead>
                           <tr>
                             {fixedColumns.map((column) => (
-                              <th key={column}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
+                              <th key={column} style={{ textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', verticalAlign: 'middle' }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
                             ))}
-                            <th>Acciones</th>
+                            <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Acciones</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {displayedRecords.length > 0 ? (
-                            displayedRecords.map((record) => (
+                          {paginatedRecords.length > 0 ? (
+                            paginatedRecords.map((record) => (
                               <tr key={record.id}>
-                                <td>{record.id}</td>
-                                <td>
+                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{record.id}</td>
+                                <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
                                   <div style={{fontWeight: 500}}>
                                     {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
                                   </div>
@@ -320,18 +389,19 @@ export default function PiTableList() {
                                     {record["Correo electronico"] || ''}
                                   </div>
                                 </td>
-                                <td style={{ maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                <td style={{ textAlign: 'left', verticalAlign: 'middle', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                                   <div>{record["Nombre del emprendimiento"]}</div>
                                   <div style={{fontSize: '0.9em', color: '#888'}}>
                                     CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
                                   </div>
                                 </td>
-                                <td>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                <td>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
-                                <td>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
-                                <td>
+                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
+                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
+                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
+                                <td style={{ textAlign: 'center' }}>
                                   <button
                                     className="btn btn-sm btn-primary mb-1"
+                                    style={{ width: '140px', height: '32px', fontSize: '15px', padding: '4px 0', fontWeight: 'normal' }}
                                     onClick={() => navigate(`/plan-inversion/${record.id}`)}
                                   >
                                     Plan de Inversión
@@ -339,6 +409,7 @@ export default function PiTableList() {
                                   <br />
                                   <button
                                     className="btn btn-sm btn-secondary"
+                                    style={{ width: '140px', height: '30px', fontSize: '14px', padding: '4px 0' }}
                                     onClick={() =>
                                       navigate(`/table/${tableName}/record/${record.id}`)
                                     }

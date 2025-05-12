@@ -85,7 +85,7 @@ export default function PlanDeInversion() {
               Validaciones
             </a>
           </li>
-          <li className={`nav-item ${activeTab === 'Formulacion' ? 'active' : ''}`}>
+          {/*<li className={`nav-item ${activeTab === 'Formulacion' ? 'active' : ''}`}>
             <a
               href="#"
               className="nav-link"
@@ -96,7 +96,7 @@ export default function PlanDeInversion() {
             >
               Formulación
             </a>
-          </li>
+          </li>*/}
           <li className={`nav-item ${activeTab === 'FormulacionProv' ? 'active' : ''}`}>
             <a
               href="#"
@@ -109,7 +109,7 @@ export default function PlanDeInversion() {
               Formulación con Proveedores
             </a>
           </li>
-          <li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
+          {/*<li className={`nav-item ${activeTab === 'InfoBancaria' ? 'active' : ''}`}>
             <a
               href="#"
               className="nav-link"
@@ -120,7 +120,7 @@ export default function PlanDeInversion() {
             >
               Información Bancaria
             </a>
-          </li>
+          </li>*/}
           <li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
             <a
               href="#"
@@ -133,7 +133,7 @@ export default function PlanDeInversion() {
               Anexos
             </a>
           </li>
-          <li className={`nav-item ${activeTab === 'Ejecucion' ? 'active' : ''}`}>
+          {/*<li className={`nav-item ${activeTab === 'Ejecucion' ? 'active' : ''}`}>
             <a
               href="#"
               className="nav-link"
@@ -144,7 +144,7 @@ export default function PlanDeInversion() {
             >
               Ejecución
             </a>
-          </li>
+          </li>*/}
           <li className={`nav-item ${activeTab === 'EncuestaSalida' ? 'active' : ''}`}>
             <a
               href="#"

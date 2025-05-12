@@ -166,17 +166,20 @@ export default function PropuestaMejoraTab({ id }) {
         <>
           <form onSubmit={handleSubmit}>
             {fields
-              .filter((field) => field.column_name !== 'id')
+              .filter((field) => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id')
               .map((field) => (
-                <div className="form-group" key={field.column_name}>
-                  <label>{field.column_name}</label>
-                  <input
-                    type="text"
+                <div className="form-group" key={field.column_name} style={{minWidth: '200px', minHeight: '60px', width: '100%', maxWidth: '100%', maxHeight: '500px', /* border: '1px solid #ccc', */ boxSizing: 'border-box', marginBottom: '16px', display: 'block', padding: 0}}>
+                  <label style={{ padding: '10px', display: 'block' }}>{field.column_name}</label>
+                  <textarea
                     name={field.column_name}
                     className="form-control"
                     value={data[field.column_name] || ''}
                     onChange={handleChange}
-                    readOnly={field.column_name === 'caracterizacion_id'}
+                    style={{
+                      width: '100%',
+                      minHeight: '40px',
+                      resize: 'both'
+                    }}
                   />
                 </div>
               ))}
