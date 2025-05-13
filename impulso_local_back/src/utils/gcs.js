@@ -43,6 +43,7 @@ async function getSignedUrlFromGCS(destination, expiresInSeconds = 900) {
       version: 'v4',
       action: 'read',
       expires: Date.now() + expiresInSeconds * 1000,
+      responseDisposition: 'inline',
     });
     
     return url;
