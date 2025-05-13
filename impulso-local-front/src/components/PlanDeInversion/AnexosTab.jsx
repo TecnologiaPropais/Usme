@@ -122,9 +122,11 @@ export default function AnexosTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id');
-      // Generar un nombre único, por ejemplo, anexos_fileName_timestamp
+      
+      // Asegurar que el nombre del archivo tenga el prefijo anexos_
+      const fileNameWithoutPrefix = fileName.startsWith('anexos_') ? fileName.replace('anexos_', '') : fileName;
       const uniqueSuffix = Date.now();
-      const fileNameWithPrefix = `anexos_${fileName}_${uniqueSuffix}`;
+      const fileNameWithPrefix = `anexos_${fileNameWithoutPrefix}_${uniqueSuffix}`;
 
       const formData = new FormData();
       formData.append('file', file);
