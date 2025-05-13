@@ -193,30 +193,45 @@ export default function AnexosTab({ id }) {
 
               {uploadedFiles && uploadedFiles.length > 0 ? (
                 <ul className="list-group mb-2">
-                  {uploadedFiles.map((f) => (
-                    <li
-                      key={f.id}
-                      className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                      <div>
-                        <strong>{f.name}</strong>
-                        <br />
-                        <a
-                          href={f.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          Ver archivo
-                        </a>
-                      </div>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleFileDelete(f.id)}
+                  {uploadedFiles.map((f) => {
+                    // Mostrar el nombre del archivo sin el prefijo 'anexos_' y el timestamp
+                    let displayName = f.name;
+                    if (displayName.startsWith('anexos_')) {
+                      // Elimina 'anexos_' y el sufijo de timestamp si existe
+                      const parts = displayName.replace('anexos_', '').split('_');
+                      if (parts.length > 1) {
+                        // El último elemento es el timestamp, lo quitamos
+                        parts.pop();
+                        displayName = parts.join('_');
+                      } else {
+                        displayName = parts[0];
+                      }
+                    }
+                    return (
+                      <li
+                        key={f.id}
+                        className="list-group-item d-flex justify-content-between align-items-center"
                       >
-                        Eliminar archivo
-                      </button>
-                    </li>
-                  ))}
+                        <div>
+                          <strong>{displayName}</strong>
+                          <br />
+                          <a
+                            href={f.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Ver archivo
+                          </a>
+                        </div>
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleFileDelete(f.id)}
+                        >
+                          Eliminar archivo
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               ) : (
                 <p className="mb-2">No hay archivos adjuntos</p>
