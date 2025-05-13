@@ -1617,7 +1617,9 @@ exports.uploadFile = async (req, res) => {
   const finalUserId = user_id || 0; 
 
   try {
+    console.log('[uploadFile] Iniciando subida de archivo...');
     if (!req.file) {
+      console.error('[uploadFile] No se ha subido ningún archivo');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
@@ -1626,6 +1628,7 @@ exports.uploadFile = async (req, res) => {
       !table_name.startsWith('provider_') &&
       !table_name.startsWith('pi_')
     ) {
+      console.error('[uploadFile] Nombre de tabla inválido:', table_name);
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
 
@@ -1634,6 +1637,7 @@ exports.uploadFile = async (req, res) => {
 
     if (table_name.startsWith('pi_')) {
       if (!caracterizacion_id) {
+        console.error('[uploadFile] Falta caracterizacion_id para tabla pi_');
         return res.status(400).json({
           message: 'El ID de caracterización es requerido para tablas pi_',
         });
@@ -1645,10 +1649,26 @@ exports.uploadFile = async (req, res) => {
     }
 
     // Sube el archivo temporal a GCS
-    const publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
+    let publicUrl;
+    try {
+      console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
+      publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
+      console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
+    } catch (gcsError) {
+      console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
+      return res.status(500).json({
+        message: 'Error subiendo el archivo a Google Cloud Storage',
+        error: gcsError.message || gcsError,
+      });
+    }
 
     // Borra el archivo temporal local
-    fs.unlinkSync(req.file.path);
+    try {
+      fs.unlinkSync(req.file.path);
+      console.log('[uploadFile] Archivo temporal eliminado:', req.file.path);
+    } catch (fsError) {
+      console.error('[uploadFile] Error eliminando archivo temporal:', fsError);
+    }
 
     // Guarda la URL pública en la base de datos
     const newFile = await File.create({
@@ -1658,6 +1678,7 @@ exports.uploadFile = async (req, res) => {
       file_path: publicUrl, // Ahora guardamos la URL pública
       source: source || 'unknown',
     });
+    console.log('[uploadFile] Registro guardado en la base de datos. ID:', newFile.id);
 
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
@@ -1677,6 +1698,7 @@ exports.uploadFile = async (req, res) => {
       newFile.name,
       `Se subió el archivo: ${newFile.name}`
     );
+    console.log('[uploadFile] Historial actualizado.');
 
     res.status(200).json({
       message: 'Archivo subido exitosamente a Google Cloud Storage',
@@ -1684,7 +1706,7 @@ exports.uploadFile = async (req, res) => {
       url: publicUrl,
     });
   } catch (error) {
-    console.error('Error subiendo el archivo:', error);
+    console.error('[uploadFile] Error general:', error);
     res.status(500).json({
       message: 'Error subiendo el archivo',
       error: error.message,
