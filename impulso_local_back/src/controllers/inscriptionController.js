@@ -1633,6 +1633,7 @@ exports.uploadFile = async (req, res) => {
     }
 
     let finalRecordId = record_id;
+    let finalFileName = fileName || req.file.originalname;
     let gcsPath;
 
     if (table_name.startsWith('pi_')) {
@@ -1643,9 +1644,9 @@ exports.uploadFile = async (req, res) => {
         });
       }
       finalRecordId = caracterizacion_id;
-      gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${req.file.originalname}`;
+      gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${finalFileName}`;
     } else {
-      gcsPath = `${table_name}/${record_id}/${req.file.originalname}`;
+      gcsPath = `${table_name}/${record_id}/${finalFileName}`;
     }
 
     // Sube el archivo temporal a GCS
@@ -1674,7 +1675,7 @@ exports.uploadFile = async (req, res) => {
     const newFile = await File.create({
       record_id: finalRecordId,
       table_name,
-      name: req.file.originalname,
+      name: finalFileName,
       file_path: publicUrl, // Ahora guardamos la URL pública
       source: source || 'unknown',
     });
@@ -1682,7 +1683,7 @@ exports.uploadFile = async (req, res) => {
 
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
-    const match = req.file.originalname.match(/_formulacion_(\d+)/);
+    const match = finalFileName.match(/_formulacion_(\d+)/);
     if (match) {
       formulacion_id = parseInt(match[1], 10);
     }
