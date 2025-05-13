@@ -69,8 +69,10 @@ export default function AnexosTab({ id }) {
       );
 
       const allFiles = filesResponse.data.files || [];
+      console.log('Archivos recibidos del backend:', allFiles);
       // Mostrar todos los archivos con el prefijo anexos_
       const filteredFiles = allFiles.filter(f => f.name.includes('anexos_'));
+      console.log('Archivos filtrados (anexos_):', filteredFiles);
       setUploadedFiles(filteredFiles);
 
     } catch (error) {
