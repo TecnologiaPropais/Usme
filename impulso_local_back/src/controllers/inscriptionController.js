@@ -1,3 +1,4 @@
+const { uploadFileToGCS, getSignedUrlFromGCS } = require('../utils/gcs');
 const { Sequelize, QueryTypes } = require('sequelize');
 const sequelize = require('../utils/sequelize');
 const multer = require('multer');
@@ -1613,12 +1614,7 @@ exports.getFieldOptions = async (req, res) => {
 exports.uploadFile = async (req, res) => {
   const { table_name, record_id } = req.params;
   const { fileName, caracterizacion_id, source, user_id } = req.body;
-
-  // Asignamos un valor por defecto si user_id viene vacío o no viene
   const finalUserId = user_id || 0; 
-
-  console.log("Contenido de req.body:", req.body);
-  console.log("Contenido de req.file:", req.file);
 
   try {
     if (!req.file) {
@@ -1633,64 +1629,39 @@ exports.uploadFile = async (req, res) => {
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
 
-    let uploadDir;
     let finalRecordId = record_id;
+    let gcsPath;
 
     if (table_name.startsWith('pi_')) {
       if (!caracterizacion_id) {
-        return res
-          .status(400)
-          .json({
-            message: 'El ID de caracterización es requerido para tablas pi_',
-          });
+        return res.status(400).json({
+          message: 'El ID de caracterización es requerido para tablas pi_',
+        });
       }
-      uploadDir = path.join(
-        '/var/data/uploads',
-        'inscription_caracterizacion',
-        caracterizacion_id.toString()
-      );
       finalRecordId = caracterizacion_id;
+      gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${req.file.originalname}`;
     } else {
-      uploadDir = path.join(
-        '/var/data/uploads',
-        table_name,
-        record_id.toString()
-      );
+      gcsPath = `${table_name}/${record_id}/${req.file.originalname}`;
     }
 
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
+    // Sube el archivo temporal a GCS
+    const publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
 
-    const ext = path.extname(req.file.originalname);
-    const finalFileName = fileName
-      ? `${fileName}${ext}`
-      : req.file.originalname;
-    const newPath = path.join(uploadDir, finalFileName);
+    // Borra el archivo temporal local
+    fs.unlinkSync(req.file.path);
 
-    fs.copyFileSync(req.file.path, newPath);
-    fs.unlinkSync(req.file.path); // Elimina el archivo temporal
-
-    const relativeFilePath = path.join(
-      '/uploads',
-      table_name,
-      finalRecordId.toString(),
-      finalFileName
-    );
-
+    // Guarda la URL pública en la base de datos
     const newFile = await File.create({
       record_id: finalRecordId,
       table_name,
-      name: finalFileName,
-      file_path: relativeFilePath,
+      name: req.file.originalname,
+      file_path: publicUrl, // Ahora guardamos la URL pública
       source: source || 'unknown',
     });
 
-    console.log('Archivo subido y registrado:', newFile);
-
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
-    const match = finalFileName.match(/_formulacion_(\d+)/);
+    const match = req.file.originalname.match(/_formulacion_(\d+)/);
     if (match) {
       formulacion_id = parseInt(match[1], 10);
     }
@@ -1699,7 +1670,7 @@ exports.uploadFile = async (req, res) => {
     await insertHistory(
       table_name,
       finalRecordId,
-      finalUserId, // Usamos finalUserId
+      finalUserId,
       'upload_file',
       formulacion_id ? `Archivo (formulacion_id:${formulacion_id})` : 'Archivo',
       null,
@@ -1708,8 +1679,9 @@ exports.uploadFile = async (req, res) => {
     );
 
     res.status(200).json({
-      message: 'Archivo subido exitosamente',
+      message: 'Archivo subido exitosamente a Google Cloud Storage',
       file: newFile,
+      url: publicUrl,
     });
   } catch (error) {
     console.error('Error subiendo el archivo:', error);
@@ -1761,22 +1733,25 @@ exports.getFiles = async (req, res) => {
       order: [['created_at', 'DESC']],
     });
 
-    const filesWithUrls = files.map((file) => {
-      let fileUrl;
-      if (table_name.startsWith('pi_')) {
-        fileUrl = `/uploads/inscription_caracterizacion/${finalRecordId}/${path.basename(file.file_path)}`;
-      } else {
-        fileUrl = `/uploads/${table_name}/${finalRecordId}/${path.basename(file.file_path)}`;
+    // Generar una URL firmada para cada archivo
+    const filesWithUrls = await Promise.all(files.map(async (file) => {
+      // Extraer el path relativo en el bucket desde file_path
+      // file_path es del tipo https://storage.googleapis.com/bucket/path/archivo.pdf
+      // Extraemos la parte después del nombre del bucket
+      let destination = file.file_path;
+      const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+      if (destination.startsWith(bucketUrl)) {
+        destination = destination.slice(bucketUrl.length);
       }
-
+      const signedUrl = await getSignedUrlFromGCS(destination);
       return {
         id: file.id,
         name: file.name,
-        url: fileUrl,
+        url: signedUrl,
         cumple: file.cumple,
         'descripcion cumplimiento': file['descripcion cumplimiento'],
       };
-    });
+    }));
 
     res.status(200).json({ files: filesWithUrls });
   } catch (error) {

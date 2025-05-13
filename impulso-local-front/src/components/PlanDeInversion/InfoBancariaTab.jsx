@@ -444,7 +444,7 @@ export default function InfoBancariaTab({ id }) {
                         <strong>{f.name}</strong>
                         <br />
                         <a
-                          href={`${config.baseUrl}${f.url}`}
+                          href={f.url}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

@@ -907,7 +907,7 @@ export default function DynamicRecordEdit() {
                               <strong>{file.name}</strong>
                               <br />
                               <a
-                                href={`${config.baseUrl}${file.url}`}
+                                href={file.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
                               >
