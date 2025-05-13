@@ -1756,24 +1756,36 @@ exports.getFiles = async (req, res) => {
       order: [['created_at', 'DESC']],
     });
 
-    // Generar una URL firmada para cada archivo
+    // Generar una URL firmada para cada archivo con un tiempo de expiración más largo (1 hora)
     const filesWithUrls = await Promise.all(files.map(async (file) => {
-      // Extraer el path relativo en el bucket desde file_path
-      // file_path es del tipo https://storage.googleapis.com/bucket/path/archivo.pdf
-      // Extraemos la parte después del nombre del bucket
-      let destination = file.file_path;
-      const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
-      if (destination.startsWith(bucketUrl)) {
-        destination = destination.slice(bucketUrl.length);
+      try {
+        // Extraer el path relativo en el bucket desde file_path
+        let destination = file.file_path;
+        const bucketUrl = `https://storage.googleapis.com/${process.env.GCS_BUCKET}/`;
+        if (destination.startsWith(bucketUrl)) {
+          destination = destination.slice(bucketUrl.length);
+        }
+        
+        // Generar URL firmada con tiempo de expiración de 1 hora (3600 segundos)
+        const signedUrl = await getSignedUrlFromGCS(destination, 3600);
+        
+        return {
+          id: file.id,
+          name: file.name,
+          url: signedUrl,
+          cumple: file.cumple,
+          'descripcion cumplimiento': file['descripcion cumplimiento'],
+        };
+      } catch (error) {
+        console.error(`Error generando URL firmada para archivo ${file.name}:`, error);
+        return {
+          id: file.id,
+          name: file.name,
+          url: null,
+          cumple: file.cumple,
+          'descripcion cumplimiento': file['descripcion cumplimiento'],
+        };
       }
-      const signedUrl = await getSignedUrlFromGCS(destination);
-      return {
-        id: file.id,
-        name: file.name,
-        url: signedUrl,
-        cumple: file.cumple,
-        'descripcion cumplimiento': file['descripcion cumplimiento'],
-      };
     }));
 
     res.status(200).json({ files: filesWithUrls });

@@ -221,6 +221,14 @@ export default function AnexosTab({ id }) {
                             href={f.url}
                             target="_blank"
                             rel="noopener noreferrer"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              if (f.url) {
+                                window.open(f.url, '_blank');
+                              } else {
+                                alert('No se pudo obtener la URL del archivo');
+                              }
+                            }}
                           >
                             Ver archivo
                           </a>

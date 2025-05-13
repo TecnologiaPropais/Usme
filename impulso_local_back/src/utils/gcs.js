@@ -30,11 +30,26 @@ async function uploadFileToGCS(filePath, destination) {
  * @returns {Promise<string>} - URL firmada temporal.
  */
 async function getSignedUrlFromGCS(destination, expiresInSeconds = 900) {
-  const [url] = await bucket.file(destination).getSignedUrl({
-    action: 'read',
-    expires: Date.now() + expiresInSeconds * 1000,
-  });
-  return url;
+  try {
+    const file = bucket.file(destination);
+    const [exists] = await file.exists();
+    
+    if (!exists) {
+      console.error(`El archivo ${destination} no existe en el bucket`);
+      return null;
+    }
+
+    const [url] = await file.getSignedUrl({
+      version: 'v4',
+      action: 'read',
+      expires: Date.now() + expiresInSeconds * 1000,
+    });
+    
+    return url;
+  } catch (error) {
+    console.error('Error generando URL firmada:', error);
+    return null;
+  }
 }
 
 module.exports = { uploadFileToGCS, getSignedUrlFromGCS };
