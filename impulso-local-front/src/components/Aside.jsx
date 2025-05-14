@@ -125,7 +125,7 @@ export default function Aside() {
               {/* Descarga Masiva: visible solo para SuperAdmin (role === 1) */}
               {role === 1 && (
                 <li className="nav-item">
-                  <Link to="/download-zip" className="nav-link">
+                  <Link to="/descarga-masiva" className="nav-link">
                     <i className="nav-icon fas fa-download" />
                     <p>Descarga Masiva</p>
                   </Link>

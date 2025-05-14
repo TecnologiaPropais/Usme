@@ -29,7 +29,11 @@ export default function DownloadZip() {
           params: { tableType: 'provider' }
         });
 
-        setTables([...inscriptionResponse.data, ...providerResponse.data]);
+        // Asegurar que siempre sean arrays
+        setTables([
+          ...(Array.isArray(inscriptionResponse.data) ? inscriptionResponse.data : []),
+          ...(Array.isArray(providerResponse.data) ? providerResponse.data : [])
+        ]);
         setLoading(false);
       } catch (error) {
         setError('Error cargando las tablas');
@@ -39,6 +43,9 @@ export default function DownloadZip() {
 
     fetchTables();
   }, []);
+
+  // Log para depuración
+  console.log('loading:', loading, 'error:', error, 'tables:', tables);
 
   const handleTableSelect = (tableName) => {
     setSelectedTables(prev => 
@@ -81,30 +88,39 @@ export default function DownloadZip() {
   if (error) return <div className="error">{error}</div>;
 
   return (
-    <div className="download-zip-container">
-      <h2>Descargar Datos</h2>
-      <div className="tables-list">
-        {tables.map(table => (
-          <div key={table.table_name} className="table-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={selectedTables.includes(table.table_name)}
-                onChange={() => handleTableSelect(table.table_name)}
-              />
-              {table.table_name}
-            </label>
-          </div>
-        ))}
+    <>
+      <h1 style={{ color: 'red' }}>¿Ves este texto fuera del div?</h1>
+      <div style={{ background: '#fff', minHeight: 400, color: '#000', border: '2px solid red' }}>
+        <h2>Descargar Datos</h2>
+        <div className="tables-list">
+          {tables.length === 0 ? (
+            <div style={{ color: '#888', margin: '20px 0' }}>
+              No hay tablas disponibles para descargar.
+            </div>
+          ) : (
+            tables.map(table => (
+              <div key={table.table_name} className="table-item">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={selectedTables.includes(table.table_name)}
+                    onChange={() => handleTableSelect(table.table_name)}
+                  />
+                  {table.table_name}
+                </label>
+              </div>
+            ))
+          )}
+        </div>
+        <button 
+          onClick={handleDownload}
+          disabled={selectedTables.length === 0}
+          className="download-button"
+        >
+          Descargar Seleccionados
+        </button>
       </div>
-      <button 
-        onClick={handleDownload}
-        disabled={selectedTables.length === 0}
-        className="download-button"
-      >
-        Descargar Seleccionados
-      </button>
-    </div>
+    </>
   );
 }
 

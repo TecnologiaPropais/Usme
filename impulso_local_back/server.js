@@ -16,6 +16,7 @@ const rolePermissionRoutes = require('./src/routes/rolePermissionRoutes');
 const inscriptionRoutes = require('./src/routes/inscriptionRoutes');
 const Role = require('./src/models/Role');
 const Permission = require('./src/models/Permission');
+const descargaRoutes = require('./src/routes/descarga');
 
 const app = express();
 app.use(cors());
@@ -38,6 +39,7 @@ app.use('/api/permissions', permissionRoutes);
 app.use('/api/role-permissions', rolePermissionRoutes);
 // Rutas de inscripción
 app.use('/api/inscriptions', inscriptionRoutes); 
+app.use('/api', descargaRoutes);
 
 // Ruta básica de prueba
 app.get('/', (req, res) => {

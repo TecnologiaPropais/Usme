@@ -30,6 +30,9 @@ export default function PiTableList() {
   // Estado para la cantidad de registros por página
   const [rowsPerPage, setRowsPerPage] = useState(10);
 
+  // Estado para la página actual
+  const [currentPage, setCurrentPage] = useState(1);
+
   // Funciones para obtener el ID y el role_id del usuario logueado desde el localStorage
   const getLoggedUserId = () => {
     return localStorage.getItem('id') || null;
@@ -269,8 +272,39 @@ export default function PiTableList() {
     return matchesLocalidad && matchesEstado && matchesAsesor && matchesAsignacion;
   });
 
-  // Al final del filtrado, limitar los registros a mostrar
-  const paginatedRecords = filteredRecords.slice(0, rowsPerPage);
+  // Calcular el número total de páginas
+  const totalPages = Math.ceil(filteredRecords.length / rowsPerPage);
+
+  // Mostrar solo los registros de la página actual
+  const paginatedRecords = filteredRecords.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+
+  // Resetear página si cambian los filtros o la cantidad de registros por página
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [rowsPerPage, search, localidadFilter, estadoFilter, asesorFilter, asignacionFilter]);
+
+  // Generar array de páginas para el paginador avanzado
+  const getPageNumbers = () => {
+    const maxPagesToShow = 20;
+    let pages = [];
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      if (currentPage <= Math.ceil(maxPagesToShow / 2)) {
+        pages = [];
+        for (let i = 1; i <= maxPagesToShow - 2; i++) pages.push(i);
+        pages.push('...', totalPages);
+      } else if (currentPage >= totalPages - Math.floor(maxPagesToShow / 2)) {
+        pages = [1, '...'];
+        for (let i = totalPages - (maxPagesToShow - 3); i <= totalPages; i++) pages.push(i);
+      } else {
+        pages = [1, '...'];
+        for (let i = currentPage - 2; i <= currentPage + 2; i++) pages.push(i);
+        pages.push('...', totalPages);
+      }
+    }
+    return pages;
+  };
 
   return (
     <div className="content-wrapper">
@@ -366,68 +400,119 @@ export default function PiTableList() {
                     {loading ? (
                       <div className="d-flex justify-content-center p-3">Cargando...</div>
                     ) : (
-                      <table className="table table-hover text-nowrap minimal-table">
-                        <thead>
-                          <tr>
-                            {fixedColumns.map((column) => (
-                              <th key={column} style={{ textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', verticalAlign: 'middle' }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
-                            ))}
-                            <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Acciones</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {paginatedRecords.length > 0 ? (
-                            paginatedRecords.map((record) => (
-                              <tr key={record.id}>
-                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{record.id}</td>
-                                <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                                  <div style={{fontWeight: 500}}>
-                                    {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
-                                  </div>
-                                  <div style={{fontSize: '0.9em', color: '#888'}}>
-                                    <i className="fas fa-envelope" style={{marginRight: 4}}></i>
-                                    {record["Correo electronico"] || ''}
-                                  </div>
-                                </td>
-                                <td style={{ textAlign: 'left', verticalAlign: 'middle', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                  <div>{record["Nombre del emprendimiento"]}</div>
-                                  <div style={{fontSize: '0.9em', color: '#888'}}>
-                                    CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
-                                  </div>
-                                </td>
-                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
-                                <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '')}</td>
-                                <td style={{ textAlign: 'center' }}>
-                                  <button
-                                    className="btn btn-sm btn-primary mb-1"
-                                    style={{ width: '140px', height: '32px', fontSize: '15px', padding: '4px 0', fontWeight: 'normal' }}
-                                    onClick={() => navigate(`/plan-inversion/${record.id}`)}
-                                  >
-                                    Plan de Inversión
-                                  </button>
-                                  <br />
-                                  <button
-                                    className="btn btn-sm btn-secondary"
-                                    style={{ width: '140px', height: '30px', fontSize: '14px', padding: '4px 0' }}
-                                    onClick={() =>
-                                      navigate(`/table/${tableName}/record/${record.id}`)
-                                    }
-                                  >
-                                    Editar
-                                  </button>
+                      <>
+                        <table className="table table-hover text-nowrap minimal-table">
+                          <thead>
+                            <tr>
+                              {fixedColumns.map((column) => (
+                                <th key={column} style={{ textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', verticalAlign: 'middle' }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
+                              ))}
+                              <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Acciones</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {paginatedRecords.length > 0 ? (
+                              paginatedRecords.map((record) => (
+                                <tr key={record.id}>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{record.id}</td>
+                                  <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
+                                    <div style={{fontWeight: 500}}>
+                                      {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
+                                    </div>
+                                    <div style={{fontSize: '0.9em', color: '#888'}}>
+                                      <i className="fas fa-envelope" style={{marginRight: 4}}></i>
+                                      {record["Correo electronico"] || ''}
+                                    </div>
+                                  </td>
+                                  <td style={{ textAlign: 'left', verticalAlign: 'middle', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    <div>{record["Nombre del emprendimiento"]}</div>
+                                    <div style={{fontSize: '0.9em', color: '#888'}}>
+                                      CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
+                                    </div>
+                                  </td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
+                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                    {(() => {
+                                      const estadoNombre = (estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '').trim().toLowerCase();
+                                      if (estadoNombre === 'listado final') {
+                                        return (
+                                          <span style={{
+                                            display: 'inline-block',
+                                            padding: '4px 12px',
+                                            borderRadius: '8px',
+                                            backgroundColor: '#a5f3a1', // Verde claro
+                                            color: '#217a2b',           // Verde oscuro
+                                            fontWeight: 600,
+                                            fontSize: '14px',
+                                            border: 'none',
+                                          }}>
+                                            Listado final
+                                          </span>
+                                        );
+                                      } else {
+                                        return estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '';
+                                      }
+                                    })()}
+                                  </td>
+                                  <td style={{ textAlign: 'center' }}>
+                                    <button
+                                      className="btn btn-sm btn-primary mb-1"
+                                      style={{ width: '140px', height: '32px', fontSize: '15px', padding: '4px 0', fontWeight: 'normal' }}
+                                      onClick={() => navigate(`/plan-inversion/${record.id}`)}
+                                    >
+                                      Plan de Inversión
+                                    </button>
+                                    <br />
+                                    <button
+                                      className="btn btn-sm btn-secondary"
+                                      style={{ width: '140px', height: '30px', fontSize: '14px', padding: '4px 0' }}
+                                      onClick={() =>
+                                        navigate(`/table/${tableName}/record/${record.id}`)
+                                      }
+                                    >
+                                      Editar
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
+                                <td colSpan={fixedColumns.length + 1} className="text-center">
+                                  No hay registros para mostrar.
                                 </td>
                               </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan={fixedColumns.length + 1} className="text-center">
-                                No hay registros para mostrar.
-                              </td>
-                            </tr>
-                          )}
-                        </tbody>
-                      </table>
+                            )}
+                          </tbody>
+                        </table>
+                        {/* Paginador avanzado */}
+                        {totalPages > 1 && (
+                          <nav className="d-flex justify-content-center align-items-center mt-3">
+                            <ul className="pagination mb-0">
+                              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>&laquo;</button>
+                              </li>
+                              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>&lsaquo;</button>
+                              </li>
+                              {getPageNumbers().map((page, idx) => (
+                                <li key={idx} className={`page-item ${page === currentPage ? 'active' : ''} ${page === '...' ? 'disabled' : ''}`}>
+                                  {page === '...'
+                                    ? <span className="page-link">...</span>
+                                    : <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
+                                  }
+                                </li>
+                              ))}
+                              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>&rsaquo;</button>
+                              </li>
+                              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                <button className="page-link" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
+                              </li>
+                            </ul>
+                          </nav>
+                        )}
+                      </>
                     )}
                   </div>
 

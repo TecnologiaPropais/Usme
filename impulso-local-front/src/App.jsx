@@ -20,6 +20,7 @@ import ProviderTableList from './components/ProviderTableList';
 import PiTableList from './components/PiTableList';
 import PlanDeInversion from './components/PlanDeInversion';
 import PublicRecordCreate from './components/PublicRecordCreate'; // Importar el componente PublicRecordCreate
+import DescargaMasiva from './components/DescargaMasiva';
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
@@ -239,13 +240,15 @@ export default function App() {
 
         {/* Nueva Ruta para la Descarga Masiva */}
         <Route
-          path="/download-zip"
+          path="/descarga-masiva"
           element={
             <PrivateRoute>
               <div className="wrapper">
                 <Header />
                 <Aside />
-                <DownloadZip />
+                <div className="content-wrapper">
+                  <DescargaMasiva />
+                </div>
                 <Footer />
               </div>
             </PrivateRoute>
