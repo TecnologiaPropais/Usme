@@ -562,7 +562,6 @@ export default function GenerarFichaTab({ id }) {
 
   return (
     <div>
-      <h3>Generar Ficha</h3>
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       <button onClick={generateFichaPDF} className="btn btn-primary" disabled={loading}>
         Descargar Ficha PDF

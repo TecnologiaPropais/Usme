@@ -153,7 +153,6 @@ export default function DatosTab({ id }) {
 
   return (
     <div>
-      <h3>Datos</h3>
       {loading ? (
         <p>Cargando campos...</p>
       ) : error ? (
@@ -179,20 +178,22 @@ export default function DatosTab({ id }) {
                   />
                 </div>
               ))}
-            <button type="submit" className="btn btn-primary">
-              {recordId ? 'Actualizar' : 'Guardar'}
-            </button>
+            {/* Contenedor flex para los botones */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: 20 }}>
+                {recordId ? 'Actualizar' : 'Guardar'}
+              </button>
+              {recordId && role !== '3' && (
+                <button
+                  type="button"
+                  className="btn btn-info btn-sm btn-historial-right"
+                  onClick={handleOpenHistoryModal}
+                >
+                  Ver Historial de Cambios
+                </button>
+              )}
+            </div>
           </form>
-
-          {recordId && role !== '3' && (
-            <button
-              type="button"
-              className="btn btn-info btn-sm mt-3"
-              onClick={handleOpenHistoryModal}
-            >
-              Ver Historial de Cambios
-            </button>
-          )}
         </div>
       )}
 

@@ -307,13 +307,12 @@ export default function PiTableList() {
   };
 
   return (
-    <div className="content-wrapper">
+    <div className="content-wrapper" style={{ paddingTop: 0, marginTop: 53 }}>
       {/* Cabecera */}
       <section className="content-header">
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Listado Final</h1>
             </div>
           </div>
         </div>
@@ -401,38 +400,138 @@ export default function PiTableList() {
                       <div className="d-flex justify-content-center p-3">Cargando...</div>
                     ) : (
                       <>
-                        <table className="table table-hover text-nowrap minimal-table">
+                        <table className="table table-hover text-nowrap minimal-table" style={{ 
+                          tableLayout: 'fixed', 
+                          width: 'auto', 
+                          minWidth: '1300px',
+                          borderCollapse: 'separate',
+                          borderSpacing: 0
+                        }}>
                           <thead>
                             <tr>
                               {fixedColumns.map((column) => (
-                                <th key={column} style={{ textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', verticalAlign: 'middle' }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
+                                <th key={column} style={{ 
+                                  textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', 
+                                  verticalAlign: 'middle',
+                                  width: column === 'id' ? '60px' :
+                                         column === 'Nombre' ? '300px' :
+                                         column === 'Empresa' ? '280px' :
+                                         column === 'Localidad' ? '155px' :
+                                         column === 'Asesor' ? '177px' :
+                                         column === 'Estado' ? '139px' : 'auto',
+                                  minWidth: column === 'id' ? '60px' :
+                                          column === 'Nombre' ? '300px' :
+                                          column === 'Empresa' ? '280px' :
+                                          column === 'Localidad' ? '155px' :
+                                          column === 'Asesor' ? '177px' :
+                                          column === 'Estado' ? '139px' : 'auto',
+                                  maxWidth: column === 'id' ? '60px' :
+                                          column === 'Nombre' ? '300px' :
+                                          column === 'Empresa' ? '280px' :
+                                          column === 'Localidad' ? '155px' :
+                                          column === 'Asesor' ? '177px' :
+                                          column === 'Estado' ? '139px' : 'auto',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap'
+                                }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
                               ))}
-                              <th style={{ textAlign: 'center', verticalAlign: 'middle' }}>Acciones</th>
+                              <th style={{ textAlign: 'center', verticalAlign: 'middle', width: '160px' }}>Acciones</th>
                             </tr>
                           </thead>
                           <tbody>
                             {paginatedRecords.length > 0 ? (
                               paginatedRecords.map((record) => (
                                 <tr key={record.id}>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{record.id}</td>
-                                  <td style={{ textAlign: 'left', verticalAlign: 'middle' }}>
-                                    <div style={{fontWeight: 500}}>
+                                  <td style={{ 
+                                    textAlign: 'center', 
+                                    verticalAlign: 'middle', 
+                                    width: '47.5px',
+                                    minWidth: '47.5px',
+                                    maxWidth: '47.5px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>{record.id}</td>
+                                  <td style={{ 
+                                    textAlign: 'left', 
+                                    verticalAlign: 'middle', 
+                                    width: '300px',
+                                    minWidth: '300px',
+                                    maxWidth: '300px',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      fontWeight: 500,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
                                       {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
                                     </div>
-                                    <div style={{fontSize: '0.9em', color: '#888'}}>
+                                    <div style={{
+                                      fontSize: '0.9em', 
+                                      color: '#888',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
                                       <i className="fas fa-envelope" style={{marginRight: 4}}></i>
                                       {record["Correo electronico"] || ''}
                                     </div>
                                   </td>
-                                  <td style={{ textAlign: 'left', verticalAlign: 'middle', maxWidth: 300, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                    <div>{record["Nombre del emprendimiento"]}</div>
-                                    <div style={{fontSize: '0.9em', color: '#888'}}>
+                                  <td style={{ 
+                                    textAlign: 'left', 
+                                    verticalAlign: 'middle', 
+                                    width: '280px',
+                                    minWidth: '280px',
+                                    maxWidth: '280px',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div style={{
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>{record["Nombre del emprendimiento"]}</div>
+                                    <div style={{
+                                      fontSize: '0.9em', 
+                                      color: '#888',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap'
+                                    }}>
                                       CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
                                     </div>
                                   </td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                                  <td style={{ 
+                                    textAlign: 'center', 
+                                    verticalAlign: 'middle', 
+                                    width: '155px',
+                                    minWidth: '155px',
+                                    maxWidth: '155px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
+                                  <td style={{ 
+                                    textAlign: 'center', 
+                                    verticalAlign: 'middle', 
+                                    width: '177px',
+                                    minWidth: '177px',
+                                    maxWidth: '177px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap'
+                                  }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || record.Asesor || '')}</td>
+                                  <td style={{ 
+                                    textAlign: 'center', 
+                                    verticalAlign: 'middle', 
+                                    width: '139px',
+                                    minWidth: '139px',
+                                    maxWidth: '139px',
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap'
+                                  }}>
                                     {(() => {
                                       const estadoNombre = (estados.find(e => String(e.id) === String(record.Estado))?.Estado || record.Estado || '').trim().toLowerCase();
                                       if (estadoNombre === 'listado final') {
@@ -517,7 +616,7 @@ export default function PiTableList() {
                   </div>
 
                   {/* Botón para limpiar filtros */}
-                  <div className="mt-3">
+                  {/*<div className="mt-3">
                     <button
                       className="btn btn-secondary"
                       onClick={() => {
@@ -527,7 +626,7 @@ export default function PiTableList() {
                     >
                       Limpiar filtros
                     </button>
-                  </div>
+                  </div>*/}
                 </div>
               </div>
             </div>

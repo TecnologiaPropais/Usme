@@ -14,6 +14,8 @@ export default function FormulacionProvTab({ id }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [piFormulacionRecords, setPiFormulacionRecords] = useState([]);
+  // Estado local para cantidades temporales
+  const [localCantidades, setLocalCantidades] = useState({});
 
   // 1. Obtener role_id y verificar si es '5'
   const roleId = localStorage.getItem('role_id');
@@ -148,6 +150,15 @@ export default function FormulacionProvTab({ id }) {
       fetchPiFormulacionRecords();
     }
   }, [id]);
+
+  // Actualizar localCantidades cuando cambian los datos de piFormulacionRecords
+  useEffect(() => {
+    const nuevasCantidades = {};
+    piFormulacionRecords.forEach((rec) => {
+      nuevasCantidades[rec.rel_id_prov] = rec.Cantidad === undefined || rec.Cantidad === null ? '1' : String(rec.Cantidad);
+    });
+    setLocalCantidades(nuevasCantidades);
+  }, [piFormulacionRecords]);
 
   const handleRubroChange = (e) => {
     setSelectedRubro(e.target.value);
@@ -328,7 +339,7 @@ export default function FormulacionProvTab({ id }) {
 
   return (
     <div>
-      <h3>Formulación con Proveedores</h3>
+      {/* <h3>Formulación con Proveedores</h3> */}
       {loading ? (
         <p>Cargando datos...</p>
       ) : error ? (
@@ -411,6 +422,8 @@ export default function FormulacionProvTab({ id }) {
                             ? getElementoName(record.Elemento)
                             : field.column_name === 'Rubro'
                             ? getRubroName(record.Rubro)
+                            : field.column_name === 'Precio'
+                            ? `$ ${Number(record[field.column_name]).toLocaleString('es-CO')}`
                             : record[field.column_name]}
                         </td>
                       ))}
@@ -418,11 +431,21 @@ export default function FormulacionProvTab({ id }) {
                         <input
                           type="number"
                           min="1"
-                          value={piData.Cantidad || 1}
-                          onChange={(e) =>
-                            handleCantidadChange(record.id, e.target.value)
-                          }
-                          style={{ width: '60px' }}
+                          value={localCantidades[record.id] ?? '1'}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLocalCantidades((prev) => ({ ...prev, [record.id]: val }));
+                          }}
+                          onBlur={(e) => {
+                            let val = e.target.value;
+                            if (val === '' || Number(val) < 1) {
+                              val = '1';
+                            }
+                            setLocalCantidades((prev) => ({ ...prev, [record.id]: val }));
+                            handleCantidadChange(record.id, Number(val));
+                          }}
+                          style={{ width: '60px', MozAppearance: 'textfield' }}
+                          className="no-spinner"
                         />
                       </td>
                       <td>
@@ -562,4 +585,16 @@ export default function FormulacionProvTab({ id }) {
 
 FormulacionProvTab.propTypes = {
   id: PropTypes.string.isRequired,
-}; 
+};
+
+/* Al final del archivo, agrega el siguiente CSS global para quitar los spinners en todos los navegadores */
+/*
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.no-spinner {
+  -moz-appearance: textfield;
+}
+*/ 

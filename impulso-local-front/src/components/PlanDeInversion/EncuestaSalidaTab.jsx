@@ -679,7 +679,7 @@ export default function EncuestaSalidaTab({ id }) {
 
   return (
     <div>
-      <h3>Encuesta de Salida y Satisfacción</h3>
+      {/* <h3>Encuesta de Salida y Satisfacción</h3> */}
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (

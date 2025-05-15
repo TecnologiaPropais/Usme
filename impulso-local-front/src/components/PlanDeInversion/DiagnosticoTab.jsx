@@ -382,12 +382,12 @@ export default function DiagnosticoTab({ id }) {
   // Render
   return (
     <div>
-      <h3>Diagnóstico</h3>
+      {/* <h3>Diagnóstico</h3> */}
       {loading ? (
         <p>Cargando...</p>
       ) : (
         <>
-          <table className="table table-bordered">
+          <table className="table table-bordered rounded-table">
             <thead>
               <tr>
                 <th>Componente</th>
@@ -408,7 +408,7 @@ export default function DiagnosticoTab({ id }) {
                         </td>
                       )}
                       <td>{question.text}</td>
-                      <td>
+                      <td className="td-radio">
                         <input
                           type="radio"
                           name={question.text}
@@ -418,7 +418,7 @@ export default function DiagnosticoTab({ id }) {
                           }
                         />
                       </td>
-                      <td>
+                      <td className="td-radio">
                         <input
                           type="radio"
                           name={question.text}
@@ -428,27 +428,27 @@ export default function DiagnosticoTab({ id }) {
                           }
                         />
                       </td>
-                      <td>{getScoreFromState(question)}</td>
+                      <td className="td-puntaje">{getScoreFromState(question)}</td>
                     </tr>
                   ))}
                   <tr>
                     <td colSpan="4" className="text-end">
                       Promedio del componente:
                     </td>
-                    <td>{calculateAverage(section.questions)}</td>
+                    <td className="td-puntaje">{calculateAverage(section.questions)}</td>
                   </tr>
                 </React.Fragment>
               ))}
             </tbody>
           </table>
-          <button className="btn btn-primary" onClick={handleSubmit}>
+          <button className="btn btn-primary btn-diagnostico" onClick={handleSubmit}>
             Guardar
           </button>
 
           {Object.keys(recordIds).length > 0 && (
             <button
               type="button"
-              className="btn btn-info btn-sm mt-3 ml-2"
+              className="btn btn-info btn-sm mt-3 ml-2 btn-historial-right"
               onClick={handleOpenHistoryModal}
             >
               Ver Historial de Cambios

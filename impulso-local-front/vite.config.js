@@ -7,14 +7,16 @@ import react from '@vitejs/plugin-react'
 // En producción, déjalo comentado o elimínalo.
 // ====================
 
-// export default defineConfig({
-//   plugins: [react()],
-//   server: {
-//     proxy: {
-//       '/api': 'http://localhost:4000' // SOLO USAR EN LOCAL. Para producción, no es necesario.
-//     }
-//   }
-// })
+/*
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    proxy: {
+       '/api': 'http://localhost:4000' // SOLO USAR EN LOCAL. Para producción, no es necesario.
+    }
+  }
+})
+*/
 
 // ====================
 // CONFIGURACIÓN PARA PRODUCCIÓN:

@@ -157,14 +157,14 @@ export default function PropuestaMejoraTab({ id }) {
 
   return (
     <div>
-      <h3>Propuesta de Mejora</h3>
+      {/* <h3>Propuesta de Mejora</h3> */}
       {loading ? (
         <p>Cargando campos...</p>
       ) : error ? (
         <div className="alert alert-danger">{error}</div>
       ) : (
         <>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', minHeight: '350px', paddingBottom: '5px' }}>
             {fields
               .filter((field) => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id')
               .map((field) => (
@@ -183,9 +183,20 @@ export default function PropuestaMejoraTab({ id }) {
                   />
                 </div>
               ))}
-            <button type="submit" className="btn btn-primary">
-              Guardar
-            </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+              <button type="submit" className="btn btn-primary" style={{ marginTop: 0 }}>
+                Guardar
+              </button>
+              {records.length > 0 && (
+                <button
+                  type="button"
+                  className="btn btn-info btn-sm btn-historial-right"
+                  onClick={handleOpenHistoryModal}
+                >
+                  Ver Historial de Cambios
+                </button>
+              )}
+            </div>
           </form>
 
           <h4 className="mt-4">Registros guardados</h4>
@@ -217,17 +228,6 @@ export default function PropuestaMejoraTab({ id }) {
               ))}
             </tbody>
           </table>
-
-          {/* Un solo botón para ver el historial de todos los registros */}
-          {records.length > 0 && (
-            <button
-              type="button"
-              className="btn btn-info btn-sm mt-3"
-              onClick={handleOpenHistoryModal}
-            >
-              Ver Historial de Cambios
-            </button>
-          )}
         </>
       )}
 

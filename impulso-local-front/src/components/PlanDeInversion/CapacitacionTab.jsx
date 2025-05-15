@@ -164,7 +164,7 @@ export default function CapacitacionTab({ id }) {
 
   return (
     <div>
-      <h3>Capacitación</h3>
+      {/* <h3>Capacitación</h3> */}
       {recommendedCodes.length === 0 ? (
         <p>No hay cápsulas recomendadas por el diagnóstico.</p>
       ) : (

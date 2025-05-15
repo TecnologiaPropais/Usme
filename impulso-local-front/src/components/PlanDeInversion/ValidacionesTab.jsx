@@ -244,7 +244,7 @@ export default function ValidacionesTab({ id }) {
 
   return (
     <div>
-      <h3>Validaciones</h3>
+      {/* <h3>Validaciones</h3> */}
       {loading ? (
         <p>Cargando campos...</p>
       ) : error ? (
@@ -305,7 +305,7 @@ export default function ValidacionesTab({ id }) {
             </div>
           </div>
 
-          <div className="mt-4" style={{ width: '100%' }}>
+          {/* <div className="mt-4" style={{ width: '100%' }}>
             <h5>Archivos adicionales</h5>
             {!showUploadForm && (
               <button
@@ -382,26 +382,26 @@ export default function ValidacionesTab({ id }) {
             ) : (
               <p>No hay archivos subidos aún.</p>
             )}
-          </div>
+          </div> */}
 
           {recordId && (
             <button
               type="button"
-              className="btn btn-info btn-sm mt-3"
+              className="btn btn-info btn-sm mt-3 btn-historial-right"
               onClick={handleOpenHistoryModal}
             >
               Ver Historial de Cambios
             </button>
           )}
 
-          <div className="d-flex justify-content-between mt-4">
+          {/* <div className="d-flex justify-content-between mt-4">
             <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
               Cancelar
             </button>
             <button className="btn btn-primary btn-sm" onClick={handleSave}>
               Guardar
             </button>
-          </div>
+          </div> */}
         </div>
       )}
 

@@ -183,7 +183,7 @@ export default function AnexosTab({ id }) {
 
   return (
     <div>
-      <h3>Anexos</h3>
+      {/* <h3>Anexos</h3> */}
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (

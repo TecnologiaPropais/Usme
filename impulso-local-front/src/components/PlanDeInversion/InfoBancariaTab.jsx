@@ -352,7 +352,6 @@ export default function InfoBancariaTab({ id }) {
 
   return (
     <div>
-      <h3>Información bancaria</h3>
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (
@@ -510,7 +509,7 @@ export default function InfoBancariaTab({ id }) {
                 {recordId && (
                   <button
                     type="button"
-                    className="btn btn-info btn-sm me-2"
+                    className="btn btn-info btn-sm me-2 btn-historial-right"
                     onClick={handleOpenHistoryModal}
                   >
                     Ver Historial de Cambios

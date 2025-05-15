@@ -383,7 +383,6 @@ export default function FormulacionTab({ id }) {
 
   return (
     <div>
-      <h3>Formulación del Plan de Inversión</h3>
       {loading ? (
         <p>Cargando...</p>
       ) : error ? (
@@ -736,7 +735,7 @@ export default function FormulacionTab({ id }) {
       {records.length > 0 && (
         <button
           type="button"
-          className="btn btn-info btn-sm mt-3"
+          className="btn btn-info btn-sm mt-3 btn-historial-right"
           onClick={handleOpenHistoryModal}
         >
           Ver Historial de Cambios
