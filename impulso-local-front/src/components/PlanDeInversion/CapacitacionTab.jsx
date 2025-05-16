@@ -55,7 +55,7 @@ export default function CapacitacionTab({ id }) {
           // No existe => sin recommended_codes
           setRecord(null);
           setRecordId(null);
-          setRecommendedCodes([]);
+          setRecommendedCodes(['235', '236']); // Agregar cápsulas por defecto
         } else {
           const existingRecord = response.data[0];
           setRecordId(existingRecord.id);
@@ -65,22 +65,25 @@ export default function CapacitacionTab({ id }) {
           if (existingRecord.recommended_codes) {
             try {
               codesArray = JSON.parse(existingRecord.recommended_codes);
+              // Asegurar que las cápsulas por defecto estén incluidas
+              if (!codesArray.includes('235')) codesArray.push('235');
+              if (!codesArray.includes('236')) codesArray.push('236');
             } catch (err) {
               console.warn("Error parseando recommended_codes:", err);
-              codesArray = [];
+              codesArray = ['235', '236']; // En caso de error, usar cápsulas por defecto
             }
           } else {
-            codesArray = [];
+            codesArray = ['235', '236']; // Si no hay recommended_codes, usar cápsulas por defecto
           }
 
-          setRecommendedCodes(Array.isArray(codesArray) ? codesArray : []);
+          setRecommendedCodes(Array.isArray(codesArray) ? codesArray : ['235', '236']);
           setRecord(existingRecord);
         }
       } catch (error) {
         console.error("Error obteniendo el registro de capacitación:", error);
         setRecord(null);
         setRecordId(null);
-        setRecommendedCodes([]);
+        setRecommendedCodes(['235', '236']); // En caso de error, usar cápsulas por defecto
       } finally {
         setLoading(false);
       }

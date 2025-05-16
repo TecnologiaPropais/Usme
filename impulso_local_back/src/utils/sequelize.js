@@ -15,14 +15,14 @@ const sequelize = new Sequelize(
         rejectUnauthorized: false // Necesario para algunos proveedores de hosting
       } : false
     },
-    logging: console.log
+    logging: isProduction ? false : console.log // Solo loguea en desarrollo
   }
 );
 
 // Verificar conexión
 sequelize.authenticate()
   .then(() => {
-    console.log('Conexión exitosa a PostgreSQL mediante Sequelize');
+    // console.log('Conexión exitosa a PostgreSQL mediante Sequelize');
   })
   .catch((err) => {
     console.error('Error conectando a la base de datos:', err);

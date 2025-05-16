@@ -7,8 +7,8 @@ import react from '@vitejs/plugin-react'
 // En producción, déjalo comentado o elimínalo.
 // ====================
 
-/*
-export default defineConfig({
+
+/*export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {

@@ -474,7 +474,7 @@ exports.getTableFields = async (req, res) => {
 
   try {
     // Verificar que el nombre de la tabla sea válido y tenga un prefijo permitido
-    console.log(`Consultando campos para la tabla: ${table_name}`);
+    // console.log(`Consultando campos para la tabla: ${table_name}`);
 
     // Realiza una consulta a la base de datos para obtener los campos de la tabla especificada.
     // La consulta obtiene el nombre de la columna, tipo de dato, si permite nulos y, si aplica, las relaciones de claves foráneas.
@@ -704,7 +704,7 @@ exports.uploadCsv = async (req, res) => {
           acc[column.column_name].autoIncrement = true;
         }
       } else {
-        console.log(`Tipo de dato no válido para la columna: ${column.column_name}`); // Verificación de tipo de dato.
+        // console.log(`Tipo de dato no válido para la columna: ${column.column_name}`); // Verificación de tipo de dato.
       }
       return acc;
     }, {});
@@ -933,8 +933,8 @@ exports.getTableRecords = async (req, res) => {
     }
 
     // Log para depuración de la consulta generada
-    console.log('Consulta SQL generada:', query);
-    console.log('Reemplazos:', replacements);
+    // console.log('Consulta SQL generada:', query);
+    // console.log('Reemplazos:', replacements);
 
     // Ejecutar la consulta
     const [records] = await sequelize.query(query, { replacements });
@@ -954,7 +954,7 @@ exports.getTableRecords = async (req, res) => {
     });
 
     // Log de los registros obtenidos
-    console.log('Registros obtenidos:', recordsWithTypes);
+    // console.log('Registros obtenidos:', recordsWithTypes);
 
     // Enviar respuesta con los registros procesados
     res.status(200).json(recordsWithTypes);
@@ -1062,50 +1062,21 @@ exports.getTableRecordById = async (req, res) => {
       WHERE kcu.table_name = '${table_name}'
     `);
 
-    console.log("Fields with foreign keys:", fields);
+    // console.log("Fields with foreign keys:", fields);
 
     // Crear un objeto para almacenar los datos relacionados.
     const relatedData = {};
-
-    // ----------------------------------------------------------------------------------------
-    // --------------------- OBTENER LOS DATOS RELACIONADOS PARA CADA CLAVE FORÁNEA ------------
-    // ----------------------------------------------------------------------------------------
+    const relatedCache = {}; // Nuevo caché para evitar consultas duplicadas
 
     for (const field of fields) {
       const relatedTableName = field.related_table;
       const foreignKeyColumn = field.column_name;
 
-      // Verificar si la tabla relacionada es válida según el tipo de tabla actual.
-      if (table_name.startsWith('provider_') && !relatedTableName.startsWith('provider_')) {
-        console.log(`Tabla relacionada ${relatedTableName} no pertenece a proveedores, ignorada.`);
-        continue;
-      }
-
-      if (table_name.startsWith('inscription_') && !relatedTableName.startsWith('inscription_')) {
-        console.log(`Tabla relacionada ${relatedTableName} no pertenece a inscripciones, ignorada.`);
-        continue;
-      }
-
-      if (
-        table_name.startsWith('pi_') &&
-        !relatedTableName.startsWith('pi_') &&
-        !relatedTableName.startsWith('inscription_') &&
-        !relatedTableName.startsWith('provider_')
-      ) {
-        console.log(
-          `Tabla relacionada ${relatedTableName} no pertenece a Plan de Inversión, Inscription o Provider, ignorada.`
-        );
-        continue;
-      }
-
-      // Si hay una tabla relacionada válida, obtener sus datos.
       if (relatedTableName) {
-        // Verificar si el modelo de la tabla relacionada ya está definido.
         let RelatedTable;
         if (sequelize.isDefined(relatedTableName)) {
           RelatedTable = sequelize.model(relatedTableName);
         } else {
-          // Si no está definido, crear el modelo de la tabla relacionada.
           const [relatedColumns] = await sequelize.query(`
             SELECT column_name, data_type
             FROM information_schema.columns
@@ -1113,7 +1084,6 @@ exports.getTableRecordById = async (req, res) => {
             AND table_schema = 'public'
           `);
 
-          // Crear el modelo de la tabla relacionada.
           const relatedTableColumns = relatedColumns.reduce((acc, column) => {
             const sequelizeType = validTypes[column.data_type.toLowerCase()];
             if (sequelizeType) {
@@ -1126,39 +1096,43 @@ exports.getTableRecordById = async (req, res) => {
             return acc;
           }, {});
 
-          // Definir el modelo de la tabla relacionada dinámicamente.
           RelatedTable = sequelize.define(relatedTableName, relatedTableColumns, {
             timestamps: false,
             freezeTableName: true,
           });
         }
 
-        // Obtener todos los registros de la tabla relacionada.
-        const relatedRecords = await RelatedTable.findAll();
+        // Si ya consultamos esta tabla, reutiliza el resultado
+        if (relatedCache[relatedTableName]) {
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
+          continue;
+        }
 
-        // Verificar si existen registros relacionados antes de acceder a ellos.
-        if (relatedRecords.length > 0) {
-          // Seleccionar un campo de visualización adecuado para la relación (usualmente diferente de 'id').
-          let displayField = Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id');
-
-          if (!displayField) {
-            displayField = 'id'; // Usar 'id' como fallback si no hay otro campo disponible.
-          }
-
-          console.log(`Related Table: ${relatedTableName}, Display Field: ${displayField}`);
-
-          // Mapear los registros relacionados a un formato adecuado.
-          relatedData[foreignKeyColumn] = relatedRecords.map((record) => ({
+        if (relatedTableName === 'users') {
+          const relatedRecords = await RelatedTable.findAll({
+            attributes: ['id', 'username'],
+            limit: 100
+          });
+          relatedCache[relatedTableName] = relatedRecords.map((record) => ({
+            id: record.id,
+            displayValue: record.username,
+          }));
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
+        } else {
+          const relatedRecords = await RelatedTable.findAll({
+            limit: 100
+          });
+          let displayField = relatedRecords[0] ? Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id') : 'id';
+          relatedCache[relatedTableName] = relatedRecords.map((record) => ({
             id: record.id,
             displayValue: record[displayField],
           }));
-        } else {
-          console.log(`No se encontraron registros en la tabla relacionada ${relatedTableName}`);
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
         }
       }
     }
 
-    console.log('Related Data:', relatedData);
+    // console.log('Related Data:', relatedData);
 
     // ----------------------------------------------------------------------------------------
     // ------------------ DEVOLVER EL REGISTRO Y LOS DATOS RELACIONADOS -----------------------
@@ -1617,9 +1591,9 @@ exports.uploadFile = async (req, res) => {
   const finalUserId = user_id || 0; 
 
   try {
-    console.log('[uploadFile] Iniciando subida de archivo...');
+    // console.log('[uploadFile] Iniciando subida de archivo...');
     if (!req.file) {
-      console.error('[uploadFile] No se ha subido ningún archivo');
+      // console.error('[uploadFile] No se ha subido ningún archivo');
       return res.status(400).json({ message: 'No se ha subido ningún archivo' });
     }
 
@@ -1628,7 +1602,7 @@ exports.uploadFile = async (req, res) => {
       !table_name.startsWith('provider_') &&
       !table_name.startsWith('pi_')
     ) {
-      console.error('[uploadFile] Nombre de tabla inválido:', table_name);
+      // console.error('[uploadFile] Nombre de tabla inválido:', table_name);
       return res.status(400).json({ message: 'Nombre de tabla inválido' });
     }
 
@@ -1638,7 +1612,7 @@ exports.uploadFile = async (req, res) => {
 
     if (table_name.startsWith('pi_')) {
       if (!caracterizacion_id) {
-        console.error('[uploadFile] Falta caracterizacion_id para tabla pi_');
+        // console.error('[uploadFile] Falta caracterizacion_id para tabla pi_');
         return res.status(400).json({
           message: 'El ID de caracterización es requerido para tablas pi_',
         });
@@ -1652,11 +1626,11 @@ exports.uploadFile = async (req, res) => {
     // Sube el archivo temporal a GCS
     let publicUrl;
     try {
-      console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
+      // console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
       publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
-      console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
+      // console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
     } catch (gcsError) {
-      console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
+      // console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
       return res.status(500).json({
         message: 'Error subiendo el archivo a Google Cloud Storage',
         error: gcsError.message || gcsError,
@@ -1665,10 +1639,10 @@ exports.uploadFile = async (req, res) => {
 
     // Borra el archivo temporal local
     try {
+      // console.log('[uploadFile] Archivo temporal eliminado:', req.file.path);
       fs.unlinkSync(req.file.path);
-      console.log('[uploadFile] Archivo temporal eliminado:', req.file.path);
     } catch (fsError) {
-      console.error('[uploadFile] Error eliminando archivo temporal:', fsError);
+      // console.error('[uploadFile] Error eliminando archivo temporal:', fsError);
     }
 
     // Guarda la URL pública en la base de datos
@@ -1679,7 +1653,7 @@ exports.uploadFile = async (req, res) => {
       file_path: publicUrl, // Ahora guardamos la URL pública
       source: source || 'unknown',
     });
-    console.log('[uploadFile] Registro guardado en la base de datos. ID:', newFile.id);
+    // console.log('[uploadFile] Registro guardado en la base de datos. ID:', newFile.id);
 
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
@@ -1699,7 +1673,7 @@ exports.uploadFile = async (req, res) => {
       newFile.name,
       `Se subió el archivo: ${newFile.name}`
     );
-    console.log('[uploadFile] Historial actualizado.');
+    // console.log('[uploadFile] Historial actualizado.');
 
     res.status(200).json({
       message: 'Archivo subido exitosamente a Google Cloud Storage',
@@ -1983,7 +1957,7 @@ exports.downloadMultipleZip = async (req, res) => {
           !table_name.startsWith('provider_') &&
           !table_name.startsWith('pi_')
         ) {
-          console.log(`Nombre de tabla inválido: ${table_name}, se omite`);
+          // console.log(`Nombre de tabla inválido: ${table_name}, se omite`);
           continue; // Omite tablas con nombres no válidos.
         }
 
@@ -2001,7 +1975,7 @@ exports.downloadMultipleZip = async (req, res) => {
           archive.directory(folderPath, `${table_name}/${record_id}`);
         } else {
           // Si la carpeta no existe, registrar un mensaje en la consola indicando que no se encontraron archivos.
-          console.log(`No se encontraron archivos para ${table_name} con ID ${record_id}`);
+          // console.log(`No se encontraron archivos para ${table_name} con ID ${record_id}`);
         }
       }
     }
@@ -2179,126 +2153,43 @@ exports.createTableRecord = async (req, res) => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // NUEVO CASO ESPECIAL PARA pi_diagnostico_cap
+    // NUEVO CASO: pi_encuesta_salida SIEMPRE INSERTA
     // ──────────────────────────────────────────────────────────────
-    else if (table_name === 'pi_diagnostico_cap') {
-      // Implementación de Upsert: Actualizar si existe, crear si no
-      // Se asume que 'caracterizacion_id' y 'Pregunta' identifican de manera única un registro
+    else if (table_name === 'pi_encuesta_salida') {
+      // Siempre crear un nuevo registro para cada respuesta
+      const insertFields = Object.keys(filteredData).map((f) => `"${f}"`).join(', ');
+      const insertValues = Object.keys(filteredData).map((_, i) => `$${i + 1}`).join(', ');
 
-      // Verificar que 'caracterizacion_id' y 'Pregunta' estén presentes en filteredData
-      if (!filteredData.caracterizacion_id || !filteredData.Pregunta) {
-        return res.status(400).json({
-          message: 'Faltan campos requeridos: caracterizacion_id y Pregunta.'
-        });
-      }
-
-      // Buscar si ya existe un registro para esta combinación de caracterizacion_id y Pregunta
-      const existingRecordQuery = `
-        SELECT id FROM "${table_name}" 
-        WHERE caracterizacion_id = :caracterizacion_id 
-          AND "Pregunta" = :Pregunta
-        LIMIT 1
+      const insertQuery = `
+        INSERT INTO "${table_name}" (${insertFields})
+        VALUES (${insertValues})
+        RETURNING *
       `;
-      const existingRecords = await sequelize.query(existingRecordQuery, {
-        replacements: {
-          caracterizacion_id: filteredData.caracterizacion_id,
-          Pregunta: filteredData.Pregunta,
-        },
-        type: sequelize.QueryTypes.SELECT,
+
+      const [newRecord] = await sequelize.query(insertQuery, {
+        bind: Object.values(filteredData),
+        type: sequelize.QueryTypes.INSERT
       });
+      const createdRecord = newRecord[0];
 
-      if (existingRecords && existingRecords.length > 0) {
-        // Actualizar el registro existente
-        const existingRecordId = existingRecords[0].id;
-
-        // Obtener información previa para el historial
-        const oldRecordQuery = `
-          SELECT * FROM "${table_name}" WHERE id = :record_id
-        `;
-        const [oldRecord] = await sequelize.query(oldRecordQuery, {
-          replacements: { record_id: existingRecordId },
-          type: sequelize.QueryTypes.SELECT,
-        });
-
-        // Construir la cláusula SET para la actualización
-        const fieldNames = Object.keys(filteredData);
-        const fieldValues = Object.values(filteredData);
-        const setClause = fieldNames.map((field, index) => `"${field}" = $${index + 1}`).join(', ');
-
-        const updateQuery = `
-          UPDATE "${table_name}"
-          SET ${setClause}
-          WHERE id = $${fieldNames.length + 1}
-          RETURNING *
-        `;
-        const [updatedRecord] = await sequelize.query(updateQuery, {
-          bind: [...fieldValues, existingRecordId],
-          type: sequelize.QueryTypes.UPDATE,
-        });
-
-        const newRecord = updatedRecord[0];
-
-        // Registrar cambios en el historial
-        for (const key of fieldNames) {
-          const oldValue = oldRecord[key] !== null && oldRecord[key] !== undefined ? String(oldRecord[key]) : null;
-          const newValue = newRecord[key] !== null && newRecord[key] !== undefined ? String(newRecord[key]) : null;
-          if (oldValue !== newValue) {
-            await insertHistory(
-              table_name,
-              existingRecordId,
-              userId,
-              'update',
-              key,
-              oldRecord[key],
-              newRecord[key],
-              `Campo ${key} actualizado`
-            );
-          }
-        }
-
-        return res.status(200).json({
-          message: 'Registro actualizado con éxito',
-          record: newRecord,
-        });
-      } else {
-        // Crear un nuevo registro si no existe
-        const insertFields = Object.keys(filteredData)
-          .map((field) => `"${field}"`)
-          .join(', ');
-        const insertValuesPlaceholders = Object.keys(filteredData)
-          .map((_, index) => `$${index + 1}`)
-          .join(', ');
-
-        const insertQuery = `
-          INSERT INTO "${table_name}" (${insertFields})
-          VALUES (${insertValuesPlaceholders})
-          RETURNING *
-        `;
-        const [newRecord] = await sequelize.query(insertQuery, {
-          bind: Object.values(filteredData),
-          type: sequelize.QueryTypes.INSERT,
-        });
-        const createdRecord = newRecord[0];
-
-        // Registrar la creación en el historial: cada campo creado con oldValue = null
-        for (const key of Object.keys(filteredData)) {
-          await insertHistory(
-            table_name,
-            createdRecord.id,
-            userId,
-            'create',
-            key,
-            null,
-            createdRecord[key],
-            `Campo ${key} creado`
-          );
-        }
-
-        return res.status(201).json({
-          message: 'Registro creado con éxito (pi_diagnostico_cap)',
-          record: createdRecord,
-        });
+      // Registrar en historial: cada campo creado con oldValue = null
+      for (const key of Object.keys(filteredData)) {
+        await insertHistory(
+          table_name,
+          createdRecord.id,
+          userId,
+          'create',
+          key,
+          null,
+          createdRecord[key],
+          `Campo ${key} creado`
+        );
       }
+
+      return res.status(201).json({
+        message: `Registro creado con éxito (${table_name})`,
+        record: createdRecord,
+      });
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -2502,13 +2393,13 @@ exports.saveFieldPreferences = async (req, res) => {
   const { table_name } = req.params;
   const { visible_columns } = req.body;
 
-  console.log(`Guardando preferencias de columnas para la tabla: ${table_name}`);
-  console.log('Columnas visibles recibidas:', visible_columns);
+  // console.log(`Guardando preferencias de columnas para la tabla: ${table_name}`);
+  // console.log('Columnas visibles recibidas:', visible_columns);
 
   try {
     // Validar que `visible_columns` sea un array
     if (!Array.isArray(visible_columns)) {
-      console.log('Error: visible_columns no es un array');
+      // console.log('Error: visible_columns no es un array');
       return res.status(400).json({ message: 'Las columnas visibles deben ser un array' });
     }
 
@@ -2521,7 +2412,7 @@ exports.saveFieldPreferences = async (req, res) => {
       // Actualizar las columnas visibles
       preference.visible_columns = visible_columns;
       await preference.save();
-      console.log('Preferencias de columnas actualizadas exitosamente');
+      // console.log('Preferencias de columnas actualizadas exitosamente');
       return res.status(200).json({ message: 'Preferencias de columnas actualizadas exitosamente' });
     } else {
       // Crear una nueva entrada
@@ -2529,7 +2420,7 @@ exports.saveFieldPreferences = async (req, res) => {
         table_name,
         visible_columns,
       });
-      console.log('Preferencias de columnas guardadas exitosamente');
+      // console.log('Preferencias de columnas guardadas exitosamente');
       return res.status(200).json({ message: 'Preferencias de columnas guardadas exitosamente' });
     }
   } catch (error) {
@@ -2545,7 +2436,7 @@ exports.saveFieldPreferences = async (req, res) => {
 exports.getFieldPreferences = async (req, res) => {
   const { table_name } = req.params;
 
-  console.log(`Obteniendo preferencias de columnas para la tabla: ${table_name}`);
+  // console.log(`Obteniendo preferencias de columnas para la tabla: ${table_name}`);
 
   try {
     const preference = await FieldPreference.findOne({
@@ -2553,10 +2444,10 @@ exports.getFieldPreferences = async (req, res) => {
     });
 
     if (preference) {
-      console.log('Preferencias de columnas encontradas:', preference.visible_columns);
+      // console.log('Preferencias de columnas encontradas:', preference.visible_columns);
       return res.status(200).json({ visible_columns: preference.visible_columns });
     } else {
-      console.log('No se encontraron preferencias de columnas. Devolviendo array vacío.');
+      // console.log('No se encontraron preferencias de columnas. Devolviendo array vacío.');
       return res.status(200).json({ visible_columns: [] });
     }
   } catch (error) {
@@ -2574,7 +2465,7 @@ exports.getFieldPreferences = async (req, res) => {
 // ----------------------------------------------------------------------------------------
 
 exports.createNewRecord = async (req, res) => {
-  console.log('Solicitud recibida en createNewRecord:', req.params.table_name, req.body);
+  // console.log('Solicitud recibida en createNewRecord:', req.params.table_name, req.body);
   
   const { table_name } = req.params;
   const recordData = req.body;
@@ -2703,20 +2594,17 @@ exports.getRelatedData = async (req, res) => {
 
     // Crear un objeto para almacenar los datos relacionados.
     const relatedData = {};
+    const relatedCache = {}; // Nuevo caché para evitar consultas duplicadas
 
-    // Iterar sobre cada campo con clave foránea para obtener sus datos relacionados.
     for (const field of fields) {
       const relatedTableName = field.related_table;
       const foreignKeyColumn = field.column_name;
 
-      // Verificar si hay una tabla relacionada válida.
       if (relatedTableName) {
-        // Verificar si el modelo de la tabla relacionada ya está definido.
         let RelatedTable;
         if (sequelize.isDefined(relatedTableName)) {
           RelatedTable = sequelize.model(relatedTableName);
         } else {
-          // Si no está definido, crear el modelo de la tabla relacionada.
           const [relatedColumns] = await sequelize.query(`
             SELECT column_name, data_type
             FROM information_schema.columns
@@ -2724,7 +2612,6 @@ exports.getRelatedData = async (req, res) => {
             AND table_schema = 'public'
           `);
 
-          // Crear el modelo de la tabla relacionada.
           const relatedTableColumns = relatedColumns.reduce((acc, column) => {
             const sequelizeType = validTypes[column.data_type.toLowerCase()];
             if (sequelizeType) {
@@ -2737,39 +2624,43 @@ exports.getRelatedData = async (req, res) => {
             return acc;
           }, {});
 
-          // Definir el modelo de la tabla relacionada dinámicamente.
           RelatedTable = sequelize.define(relatedTableName, relatedTableColumns, {
             timestamps: false,
             freezeTableName: true,
           });
         }
 
-        // Obtener todos los registros de la tabla relacionada.
-        const relatedRecords = await RelatedTable.findAll();
+        // Si ya consultamos esta tabla, reutiliza el resultado
+        if (relatedCache[relatedTableName]) {
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
+          continue;
+        }
 
-        // Verificar si existen registros relacionados antes de acceder a ellos.
-        if (relatedRecords.length > 0) {
-          // Seleccionar un campo de visualización adecuado para la relación (usualmente diferente de 'id').
-          let displayField = Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id');
-
-          if (!displayField) {
-            displayField = 'id'; // Usar 'id' como fallback si no hay otro campo disponible.
-          }
-
-          console.log(`Related Table: ${relatedTableName}, Display Field: ${displayField}`);
-
-          // Mapear los registros relacionados a un formato adecuado.
-          relatedData[foreignKeyColumn] = relatedRecords.map((record) => ({
+        if (relatedTableName === 'users') {
+          const relatedRecords = await RelatedTable.findAll({
+            attributes: ['id', 'username'],
+            limit: 100
+          });
+          relatedCache[relatedTableName] = relatedRecords.map((record) => ({
+            id: record.id,
+            displayValue: record.username,
+          }));
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
+        } else {
+          const relatedRecords = await RelatedTable.findAll({
+            limit: 100
+          });
+          let displayField = relatedRecords[0] ? Object.keys(relatedRecords[0].dataValues).find((col) => col !== 'id') : 'id';
+          relatedCache[relatedTableName] = relatedRecords.map((record) => ({
             id: record.id,
             displayValue: record[displayField],
           }));
-        } else {
-          console.log(`No se encontraron registros en la tabla relacionada ${relatedTableName}`);
+          relatedData[foreignKeyColumn] = relatedCache[relatedTableName];
         }
       }
     }
 
-    console.log('Related Data:', relatedData);
+    // console.log('Related Data:', relatedData);
 
     // ----------------------------------------------------------------------------------------
     // ------------------ DEVOLVER LOS DATOS RELACIONADOS -------------------------------------
@@ -2793,7 +2684,7 @@ exports.getTableFields = async (req, res) => {
   const { table_name } = req.params;
 
   try {
-    console.log(`Consultando campos para la tabla: ${table_name}`);
+    // console.log(`Consultando campos para la tabla: ${table_name}`);
 
     const [fields] = await sequelize.query(`
       SELECT 

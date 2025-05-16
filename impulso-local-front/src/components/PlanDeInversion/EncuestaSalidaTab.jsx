@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import PropTypes from "prop-types";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import config from '../../config';
+import './EncuestaSalidaTab.modern.css';
 
 export default function EncuestaSalidaTab({ id }) {
   const initialQuestions = [
@@ -224,93 +225,147 @@ export default function EncuestaSalidaTab({ id }) {
     }
   ];
 
-  const [recordsMap, setRecordsMap] = useState({});
-  const [loading, setLoadingState] = useState(true);
-  const [error, setErrorState] = useState(null);
+  // Consolidar estados relacionados
+  const [appState, setAppState] = useState({
+    loading: true,
+    error: null,
+    recordsMap: {},
+    caracterizacionData: {},
+    tipoIdentificaciones: [],
+    asesorData: {
+      nombre: "No asignado",
+      documento: "No disponible"
+    }
+  });
 
-  const [history, setHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [historyError, setHistoryError] = useState(null);
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [history, setHistory] = useState({
+    data: [],
+    loading: false,
+    error: null,
+    showModal: false
+  });
 
-  const [caracterizacionData, setCaracterizacionData] = useState({});
+  // Memoizar la función de fetch para evitar recreaciones innecesarias
+  const fetchData = useCallback(async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setAppState(prev => ({ ...prev, error: "No se encontró el token de autenticación", loading: false }));
+      return;
+    }
 
-  useEffect(() => {
-    const fetchExistingRecords = async () => {
-      setLoadingState(true);
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) {
-          alert("No se encontró el token de autenticación");
-          setLoadingState(false);
-          return;
-        }
-
-        // Obtener registros existentes de la encuesta
-        const response = await axios.get(
+    try {
+      // Realizar todas las llamadas API en paralelo
+      const [recordsResponse, tipoIdResponse, carResponse] = await Promise.all([
+        axios.get(
           `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/records?caracterizacion_id=${id}`,
           { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        const newMap = {};
-        response.data.forEach((rec) => {
-          const comp = rec.componente ? rec.componente.trim() : "";
-          const preg = rec.pregunta ? rec.pregunta.trim() : "";
-          const resp = rec.respuesta ? rec.respuesta.trim() : "";
-          // Para preguntas abiertas sin opción, la clave es comp|preg
-          // Para preguntas con opción, la clave es comp|preg|resp (si seleccionada)
-          // Pero si es openEnded (dentro de una opción), también guardamos su respuesta
-          // ya se hace: const key = resp ? comp + "|" + preg + "|" + resp : comp + "|" + preg;
-
-          // Ajuste: para mostrar siempre la respuesta en openEnded:
-          // Si es una pregunta abierta sin opciones, resp debería tener su texto.
-          // Si es una opción openEnded, ya se imprime line + ": " + rec.respuesta
-          const key = rec.seleccion === false && resp && !initialQuestions
-            .find(s => s.component === comp)?.questions
-            .find(qq => qq.text === preg)?.options 
-            ? comp + "|" + preg
-            : (resp ? comp + "|" + preg + "|" + resp : comp + "|" + preg);
-
-          newMap[key] = {
-            respuesta: resp,
-            seleccion: rec.seleccion,
-            record_id: rec.id
-          };
-        });
-        setRecordsMap(newMap);
-
-        // Ahora obtener datos de inscription_caracterizacion
-        const carResponse = await axios.get(
-          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, 
+        ),
+        axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/field-options/Tipo de identificacion`,
           { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setCaracterizacionData(carResponse.data.record || {});
-      } catch (error) {
-        console.error("Error obteniendo registros existentes:", error);
-        setErrorState("Error obteniendo los datos de la encuesta.");
-      } finally {
-        setLoadingState(false);
-      }
-    };
+        ),
+        axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
+      ]);
 
-    fetchExistingRecords();
+      // Procesar registros de la encuesta
+      const newMap = {};
+      recordsResponse.data.forEach((rec) => {
+        const comp = rec.componente ? rec.componente.trim() : "";
+        const preg = rec.pregunta ? rec.pregunta.trim() : "";
+        const resp = rec.respuesta ? rec.respuesta.trim() : "";
+        const key = rec.seleccion === false && resp && !initialQuestions
+          .find(s => s.component === comp)?.questions
+          .find(qq => qq.text === preg)?.options 
+          ? comp + "|" + preg
+          : (resp ? comp + "|" + preg + "|" + resp : comp + "|" + preg);
+
+        newMap[key] = {
+          respuesta: resp,
+          seleccion: rec.seleccion,
+          record_id: rec.id
+        };
+      });
+
+      // Obtener datos del asesor si existe
+      let asesorData = { nombre: "No asignado", documento: "No disponible" };
+      const asesorId = carResponse.data.record?.Asesor;
+      if (asesorId) {
+        try {
+          const asesorResponse = await axios.get(
+            `${config.urls.inscriptions.tables}/users/record/${asesorId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const asesor = asesorResponse.data.record;
+          asesorData = {
+            nombre: asesor.username || "No asignado",
+            documento: asesor.documento || "No disponible"
+          };
+        } catch (err) {
+          console.error("Error obteniendo datos del asesor:", err);
+        }
+      }
+
+      // Actualizar estado con todos los datos
+      setAppState({
+        loading: false,
+        error: null,
+        recordsMap: newMap,
+        caracterizacionData: carResponse.data.record || {},
+        tipoIdentificaciones: tipoIdResponse.data || [],
+        asesorData
+      });
+    } catch (error) {
+      console.error("Error obteniendo datos:", error);
+      setAppState(prev => ({
+        ...prev,
+        loading: false,
+        error: "Error obteniendo los datos de la encuesta."
+      }));
+    }
   }, [id]);
 
-  const handleOptionChange = (component, question, optionLabel, value) => {
-    const key = component + "|" + question + "|" + (optionLabel || "");
-    setRecordsMap((prev) => ({
-      ...prev,
-      [key]: { ...prev[key], respuesta: prev[key]?.respuesta || optionLabel || "", seleccion: value, record_id: prev[key]?.record_id }
-    }));
-  };
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
-  const handleOpenEndedChange = (component, question, value) => {
+  // Memoizar handlers para evitar recreaciones innecesarias
+  const handleOptionChange = useCallback((component, question, optionLabel, value) => {
+    setAppState(prev => {
+      const newMap = { ...prev.recordsMap };
+      Object.keys(newMap).forEach((k) => {
+        if (k.startsWith(component + "|" + question + "|")) {
+          newMap[k] = { ...newMap[k], seleccion: false };
+        }
+      });
+      const key = component + "|" + question + "|" + optionLabel;
+      newMap[key] = { 
+        ...newMap[key], 
+        respuesta: optionLabel, 
+        seleccion: value, 
+        record_id: prev.recordsMap[key]?.record_id 
+      };
+      return { ...prev, recordsMap: newMap };
+    });
+  }, []);
+
+  const handleOpenEndedChange = useCallback((component, question, value) => {
     const key = component + "|" + question;
-    setRecordsMap((prev) => ({
+    setAppState(prev => ({
       ...prev,
-      [key]: { ...prev[key], respuesta: value || "", seleccion: false, record_id: prev[key]?.record_id }
+      recordsMap: {
+        ...prev.recordsMap,
+        [key]: { 
+          ...prev.recordsMap[key], 
+          respuesta: value || "", 
+          seleccion: false, 
+          record_id: prev.recordsMap[key]?.record_id 
+        }
+      }
     }));
-  };
+  }, []);
 
   const handleSubmit = async () => {
     try {
@@ -321,53 +376,49 @@ export default function EncuestaSalidaTab({ id }) {
       }
 
       const userId = localStorage.getItem('id');
-      const requests = [];
+      const batchRequests = [];
+      const updates = [];
+      const creates = [];
 
+      // Preparar todas las solicitudes primero
       for (const section of initialQuestions) {
         for (const q of section.questions) {
           if (q.options && q.options.length > 0) {
-            for (const opt of q.options) {
+            // Buscar la opción seleccionada
+            const selectedOpt = q.options.find(opt => {
               const key = section.component + "|" + q.text + "|" + opt.label;
-              const rec = recordsMap[key] || { respuesta: opt.label, seleccion: false };
+              const rec = appState.recordsMap[key] || {};
+              return rec.seleccion === true;
+            });
+
+            if (selectedOpt) {
+              const key = section.component + "|" + q.text + "|" + selectedOpt.label;
+              const rec = appState.recordsMap[key] || { respuesta: selectedOpt.label, seleccion: true };
               const requestData = {
                 caracterizacion_id: id,
                 componente: section.component,
                 pregunta: q.text,
-                respuesta: rec.respuesta || opt.label || "",
-                seleccion: rec.seleccion === true,
+                respuesta: rec.respuesta || selectedOpt.label || "",
+                seleccion: true,
                 user_id: userId
               };
 
               if (rec.record_id) {
-                const updatePromise = axios.put(
-                  `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${rec.record_id}`,
-                  requestData,
-                  { headers: { Authorization: `Bearer ${token}` } }
-                );
-                requests.push(updatePromise);
+                updates.push({ id: rec.record_id, data: requestData });
               } else {
-                const createPromise = axios.post(
-                  `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
-                  requestData,
-                  { headers: { Authorization: `Bearer ${token}` } }
-                ).then(res => {
-                  setRecordsMap(prev => ({
-                    ...prev,
-                    [key]: { ...prev[key], record_id: res.data.id }
-                  }));
-                });
-                requests.push(createPromise);
+                creates.push(requestData);
               }
             }
 
+            // Manejar campo abierto si aplica (openEndedIfNo)
             if (q.openEndedIfNo) {
               const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
               if (noOption) {
                 const noKey = section.component + "|" + q.text + "|" + noOption.label;
-                const noRec = recordsMap[noKey] || {};
+                const noRec = appState.recordsMap[noKey] || {};
                 if (noRec.seleccion) {
                   const openKey = section.component + "|" + q.text + "|RazónNo";
-                  const openRec = recordsMap[openKey] || { respuesta: "", seleccion: false };
+                  const openRec = appState.recordsMap[openKey] || {};
                   const requestData = {
                     caracterizacion_id: id,
                     componente: section.component,
@@ -376,88 +427,116 @@ export default function EncuestaSalidaTab({ id }) {
                     seleccion: false,
                     user_id: userId
                   };
+
                   if (openRec.record_id) {
-                    const updatePromise = axios.put(
-                      `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${openRec.record_id}`,
-                      requestData,
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    requests.push(updatePromise);
+                    updates.push({ id: openRec.record_id, data: requestData });
                   } else {
-                    const createPromise = axios.post(
-                      `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
-                      requestData,
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    ).then(res => {
-                      setRecordsMap(prev => ({
-                        ...prev,
-                        [openKey]: { ...prev[openKey], record_id: res.data.id }
-                      }));
-                    });
-                    requests.push(createPromise);
+                    creates.push(requestData);
                   }
                 }
               }
             }
-
           } else if (q.openEnded) {
             const key = section.component + "|" + q.text;
-            const rec = recordsMap[key] || { respuesta: "", seleccion: false };
-            const requestData = {
-              caracterizacion_id: id,
-              componente: section.component,
-              pregunta: q.text,
-              respuesta: rec.respuesta || "",
-              seleccion: false,
-              user_id: userId
-            };
+            const rec = appState.recordsMap[key] || { respuesta: "", seleccion: false };
+            if (rec.respuesta && rec.respuesta.trim() !== "") {
+              const requestData = {
+                caracterizacion_id: id,
+                componente: section.component,
+                pregunta: q.text,
+                respuesta: rec.respuesta,
+                seleccion: false,
+                user_id: userId
+              };
 
-            if (rec.record_id) {
-              const updatePromise = axios.put(
-                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${rec.record_id}`,
-                requestData,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              requests.push(updatePromise);
-            } else {
-              const createPromise = axios.post(
-                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
-                requestData,
-                { headers: { Authorization: `Bearer ${token}` } }
-              ).then(res => {
-                setRecordsMap(prev => ({
-                  ...prev,
-                  [key]: { ...prev[key], record_id: res.data.id }
-                }));
-              });
-              requests.push(createPromise);
+              if (rec.record_id) {
+                updates.push({ id: rec.record_id, data: requestData });
+              } else {
+                creates.push(requestData);
+              }
             }
           }
         }
       }
 
-      await Promise.all(requests);
+      // Procesar actualizaciones en lotes
+      if (updates.length > 0) {
+        const updatePromises = updates.map(update => 
+          axios.put(
+            `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${update.id}`,
+            update.data,
+            { headers: { Authorization: `Bearer ${token}` } }
+          ).catch(error => {
+            if (error.response && error.response.status === 404) {
+              // Si el registro no existe, crear uno nuevo
+              return axios.post(
+                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
+                update.data,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+            }
+            throw error;
+          })
+        );
+        batchRequests.push(...updatePromises);
+      }
+
+      // Procesar creaciones en lotes
+      if (creates.length > 0) {
+        const createPromises = creates.map(data =>
+          axios.post(
+            `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
+            data,
+            { headers: { Authorization: `Bearer ${token}` } }
+          )
+        );
+        batchRequests.push(...createPromises);
+      }
+
+      // Ejecutar todas las solicitudes en paralelo
+      const results = await Promise.all(batchRequests);
+
+      // Actualizar el estado con los nuevos IDs
+      const newRecordsMap = { ...appState.recordsMap };
+      results.forEach((result, index) => {
+        const request = [...updates, ...creates][index];
+        const key = Object.keys(newRecordsMap).find(k => 
+          newRecordsMap[k].respuesta === request.data.respuesta &&
+          newRecordsMap[k].seleccion === request.data.seleccion
+        );
+        if (key) {
+          newRecordsMap[key] = {
+            ...newRecordsMap[key],
+            record_id: result.data.id
+          };
+        }
+      });
+
+      setAppState(prev => ({
+        ...prev,
+        recordsMap: newRecordsMap
+      }));
+
       alert("Encuesta guardada exitosamente");
     } catch (error) {
       console.error("Error guardando la encuesta:", error);
-      alert("Hubo un error al guardar la encuesta");
+      alert("Error al guardar la encuesta. Por favor, intente nuevamente.");
     }
   };
 
   const handleOpenHistoryModal = async () => {
     await fetchAllRecordsHistory();
-    setShowHistoryModal(true);
+    setHistory(prev => ({ ...prev, showModal: true }));
   };
 
   const fetchAllRecordsHistory = async () => {
-    const recordIds = Object.values(recordsMap).map(r => r.record_id).filter(Boolean);
+    const recordIds = Object.values(appState.recordsMap).map(r => r.record_id).filter(Boolean);
     if (recordIds.length === 0) {
-      setHistory([]);
+      setHistory(prev => ({ ...prev, data: [] }));
       return;
     }
 
-    setHistoryLoading(true);
-    setHistoryError(null);
+    setHistory(prev => ({ ...prev, loading: true, error: null }));
 
     try {
       const token = localStorage.getItem('token');
@@ -478,12 +557,10 @@ export default function EncuestaSalidaTab({ id }) {
       });
 
       combinedHistory.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      setHistory(combinedHistory);
-      setHistoryLoading(false);
+      setHistory(prev => ({ ...prev, data: combinedHistory, loading: false }));
     } catch (error) {
       console.error('Error obteniendo el historial:', error);
-      setHistoryError('Error obteniendo el historial');
-      setHistoryLoading(false);
+      setHistory(prev => ({ ...prev, error: 'Error obteniendo el historial', loading: false }));
     }
   };
 
@@ -526,16 +603,44 @@ export default function EncuestaSalidaTab({ id }) {
     y += 30;
 
     // Tabla superior con datos del emprendimiento
-    const c = caracterizacionData || {};
+    const c = appState.caracterizacionData || {};
+    // Mapeo manual de ids a descripciones de tipo de documento
+    const tipoIdMap = {
+      1: "Cédula de Ciudadanía",
+      2: "Tarjeta de Identidad",
+      3: "Cédula de Extranjería",
+      4: "NIT",
+      5: "Pasaporte",
+      6: "Permiso Especial"
+    };
+    const tipoIdValue = c["Tipo de identificacion"];
+    let tipoIdDesc = tipoIdMap[tipoIdValue] || tipoIdValue;
+    // Mapeo manual de ids a nombres de localidad
+    // Modifica este objeto si cambian los ids o nombres de localidad
+    const localidadMap = {
+      10: "Los Mártires",
+      16: "Teusaquillo",
+      17: "Tunjuelito",
+      18: "Usaquén",
+      22: "Suba",
+      23: "Engativá",
+      25: "Barrios Unidos",
+      26: "San Cristóbal",
+      27: "Rafael Uribe Uribe",
+      28: "Kennedy"
+    };
+    const localidadValue = c["Localidad de la unidad de negocio"];
+    const localidadDesc = localidadMap[localidadValue] || localidadValue;
+    const fechaDiligenciamiento = new Date();
+    const fechaFormateada = `${fechaDiligenciamiento.getDate().toString().padStart(2, '0')}/${(fechaDiligenciamiento.getMonth() + 1).toString().padStart(2, '0')}/${fechaDiligenciamiento.getFullYear()}`;
     const infoData = [
       ["Nombre del emprendimiento", c["Nombre del emprendimiento"] || ""],
-      ["Tipo de documento", c["Tipo de identificacion"] || ""],
+      ["Tipo de documento", tipoIdDesc || ""],
       ["Documento de identidad", c["Numero de identificacion"] || ""],
       ["Dirección del emprendimiento", c["Direccion de la unidad de negocio"] || ""],
-      ["Localidad donde se encuentra ubicado la microempresa", c["Localidad de la unidad de negocio"] || ""],
-      ["Actividad económica", ""],
+      ["Localidad donde se encuentra ubicado la microempresa", localidadDesc],
       ["Valor entregado como capitalización", ""],
-      ["Fecha de diligenciamiento", ""]
+      ["Fecha de diligenciamiento", fechaFormateada]
     ];
     autoTable(doc, {
       startY: y,
@@ -545,7 +650,7 @@ export default function EncuestaSalidaTab({ id }) {
       tableWidth: 'auto',
       margin: { left: marginLeft, right: marginRight },
     });
-    y = doc.lastAutoTable.finalY + 20;
+    y = doc.lastAutoTable.finalY + 40;
 
     doc.setFontSize(fontSizes.title);
     doc.setFont(undefined, 'bold');
@@ -556,86 +661,143 @@ export default function EncuestaSalidaTab({ id }) {
     doc.setFont(undefined, 'normal');
 
     // Mostrar encuesta completa
-    for (const section of initialQuestions) {
-      // Título de sección
+    initialQuestions.forEach((section, sectionIdx) => {
+      // Verificar espacio antes de la sección
+      if (y + 60 > doc.internal.pageSize.getHeight() - pageMarginBottom) {
+        doc.addPage();
+        y = 40;
+      }
+      // Título de sección con fondo azul y texto blanco
+      const sectionTitleHeight = 28;
+      doc.setFillColor(25, 118, 210); // Azul institucional
+      doc.rect(marginLeft, y, maxLineWidth, sectionTitleHeight, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(fontSizes.title + 2);
       doc.setFont(undefined, 'bold');
-      let sectionLines = doc.splitTextToSize(section.component, maxLineWidth);
-      y = addTextWithPageBreak(doc, sectionLines, marginLeft, y, lineHeight, 10, pageMarginBottom);
-
+      doc.text(section.component, marginLeft + 10, y + sectionTitleHeight / 2 + 5);
+      y += sectionTitleHeight + 6;
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
 
-      for (const q of section.questions) {
-        let qLines = doc.splitTextToSize(q.text, maxLineWidth);
-        y = addTextWithPageBreak(doc, qLines, marginLeft, y, lineHeight, 5, pageMarginBottom);
-
-        if (q.options && q.options.length > 0) {
-          for (const opt of q.options) {
-            const key = section.component + "|" + q.text + "|" + opt.label;
-            const rec = recordsMap[key];
-
-            let prefix = "[ ]";
-            let line = opt.label;
-
-            if (rec && rec.seleccion) {
-              prefix = "[X]";
-              // Si es openEnded dentro de una opción y hay rec.respuesta
-              // la mostramos directamente
-              if (opt.openEnded && rec.respuesta) {
-                line = opt.label + ": " + rec.respuesta;
-              }
-            } else {
-              // Si es openEnded pero no seleccionada, o no hay respuesta, solo muestra la etiqueta
-              if (opt.openEnded && rec && rec.respuesta) {
-                line = opt.label + ": " + rec.respuesta;
-              }
-            }
-
-            let optLine = prefix + " " + line;
-            let optLines = doc.splitTextToSize(optLine, maxLineWidth - 20);
-            // Indentar opciones
-            optLines = optLines.map(l => "   " + l);
-            y = addTextWithPageBreak(doc, optLines, marginLeft, y, lineHeight, 5, pageMarginBottom);
-          }
-
-          // Campo adicional si se respondió "No"
-          if (q.openEndedIfNo) {
-            const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
-            if (noOption) {
-              const noKey = section.component + "|" + q.text + "|" + noOption.label;
-              const noRec = recordsMap[noKey];
-              if (noRec && noRec.seleccion) {
-                const openKey = section.component + "|" + q.text + "|RazónNo";
-                const openRec = recordsMap[openKey];
-                if (openRec && openRec.respuesta) {
-                  let noLine = "[X] Razón No: " + openRec.respuesta;
-                  let noLines = doc.splitTextToSize(noLine, maxLineWidth - 20);
-                  noLines = noLines.map(l => "   " + l);
-                  y = addTextWithPageBreak(doc, noLines, marginLeft, y, lineHeight, 5, pageMarginBottom);
-                }
-              }
-            }
-          }
-
-        } else if (q.openEnded) {
-          const key = section.component + "|" + q.text;
-          const rec = recordsMap[key];
-          const respText = (rec && rec.respuesta) ? rec.respuesta : "";
-          let respLines = doc.splitTextToSize(respText, maxLineWidth - 20);
-          respLines = respLines.map(l => "   " + l);
-          y = addTextWithPageBreak(doc, respLines, marginLeft, y, lineHeight, 10, pageMarginBottom);
-        } else {
-          y += 10;
+      section.questions.forEach((q, qIdx) => {
+        // Calcular altura estimada de la tarjeta
+        let qLines = doc.splitTextToSize((qIdx + 1) + '. ' + q.text, maxLineWidth - 20);
+        let cardH = qLines.length * (lineHeight + 1) + 10;
+        let optionsToShow = (q.options && q.options.length > 0) ? q.options.filter(opt => !opt.label.startsWith('Otro')) : [];
+        if (optionsToShow.length > 0) {
+          cardH += optionsToShow.length * (lineHeight + 6);
         }
-
-        y += 5;
-      }
-
+        // Campo abierto dependiente de la opción 'No'
+        let showNoReason = false;
+        let noReasonText = '';
+        if (q.openEndedIfNo) {
+          const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
+          if (noOption) {
+            const noKey = section.component + '|' + q.text + '|' + noOption.label;
+            const noRec = appState.recordsMap[noKey];
+            if (noRec && noRec.seleccion) {
+              const openKey = section.component + '|' + q.text + '|RazónNo';
+              const openRec = appState.recordsMap[openKey] || {};
+              if (openRec && openRec.respuesta) {
+                showNoReason = true;
+                noReasonText = openRec.respuesta;
+                cardH += lineHeight + 14;
+              }
+            }
+          }
+        }
+        // Pregunta abierta
+        let showOpen = false;
+        let openText = '';
+        if (q.openEnded) {
+          const key = section.component + '|' + q.text;
+          const rec = appState.recordsMap[key];
+          if (rec && rec.respuesta) {
+            showOpen = true;
+            openText = rec.respuesta;
+            cardH += lineHeight + 14;
+          }
+        }
+        // Verificar espacio antes de la tarjeta
+        if (y + cardH + 24 > doc.internal.pageSize.getHeight() - pageMarginBottom) {
+          doc.addPage();
+          y = 40;
+        }
+        // Dibuja la tarjeta
+        const cardX = marginLeft;
+        const cardY = y;
+        const cardW = maxLineWidth;
+        doc.setDrawColor(220, 220, 220);
+        doc.setFillColor(245, 247, 250); // Gris muy claro
+        doc.roundedRect(cardX, cardY, cardW, cardH + 10, 8, 8, 'FD');
+        let yCard = y + 18;
+        // Pregunta
+        doc.setFont(undefined, 'bold');
+        qLines.forEach((line, i) => {
+          doc.text(line, cardX + 14, yCard);
+          yCard += lineHeight + 1;
+        });
+        doc.setFont(undefined, 'normal');
+        // Opciones tipo checklist
+        optionsToShow.forEach((opt) => {
+          const key = section.component + '|' + q.text + '|' + opt.label;
+          const rec = appState.recordsMap[key];
+          // Círculo
+          const circleX = cardX + 18;
+          const circleY = yCard - 4;
+          if (rec && rec.seleccion) {
+            doc.setFillColor(25, 118, 210); // Azul
+            doc.circle(circleX, circleY, 5, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(12);
+            doc.text('✓', circleX - 3, circleY + 4);
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(fontSizes.normal);
+          } else {
+            doc.setDrawColor(180, 180, 180);
+            doc.setFillColor(240, 240, 240);
+            doc.circle(circleX, circleY, 5, 'FD');
+          }
+          // Texto de la opción
+          let optText = opt.label;
+          if (opt.openEnded && rec && rec.respuesta) {
+            optText = opt.label + ': ' + rec.respuesta;
+          }
+          doc.text(optText, cardX + 32, yCard);
+          yCard += lineHeight + 6;
+        });
+        // Campo abierto dependiente de la opción 'No'
+        if (showNoReason) {
+          doc.setFillColor(230, 236, 245);
+          doc.roundedRect(cardX + 12, yCard - 10, cardW - 24, lineHeight + 10, 4, 4, 'F');
+          doc.setFont('helvetica', 'italic');
+          doc.text('Razón No: ' + noReasonText, cardX + 18, yCard + 4);
+          doc.setFont('helvetica', 'normal');
+          yCard += lineHeight + 14;
+        }
+        // Pregunta abierta
+        if (showOpen) {
+          doc.setFillColor(230, 236, 245);
+          doc.roundedRect(cardX + 12, yCard - 10, cardW - 24, lineHeight + 10, 4, 4, 'F');
+          doc.setFont('helvetica', 'italic');
+          doc.text('Respuesta: ' + openText, cardX + 18, yCard + 4);
+          doc.setFont('helvetica', 'normal');
+          yCard += lineHeight + 14;
+        }
+        y += cardH + 24;
+      });
       y += 10;
-    }
+    });
 
-    // Nueva página para datos finales
-    doc.addPage();
-    y = 60;
+    // Antes de las tablas finales, verificar si hay espacio suficiente
+    // Aproximadamente 2 tablas de 4 filas, 2*60px de alto + margen
+    const tablasFinalesAltura = 140;
+    if (y + tablasFinalesAltura > doc.internal.pageSize.getHeight() - pageMarginBottom) {
+      doc.addPage();
+      y = 60;
+    }
+    // Nueva página para datos finales (ahora solo si es necesario)
     doc.setFontSize(fontSizes.title);
     doc.setFont(undefined, 'bold');
     doc.text("Datos finales:", doc.internal.pageSize.getWidth() / 2, y, { align: 'center' });
@@ -649,22 +811,30 @@ export default function EncuestaSalidaTab({ id }) {
       ["Nombre del Empresario:", nombresCompleto || "No disponible"],
       ["Nombre del Micronegocio:", c["Nombre del emprendimiento"] || ""],
       ["Documento de identidad:", c["Numero de identificacion"] || ""],
-      ["Firma:", ""]
+      ["Firma:", "\n\n\n"],
     ];
+    // Calcular el ancho de la columna 2 dinámicamente para que la tabla ocupe el mismo ancho que la encuesta
+    const col1Width = 180;
+    const col2Width = maxLineWidth - col1Width;
     autoTable(doc, {
       startY: y,
       body: finalData1,
       theme: 'grid',
       styles: { fontSize: fontSizes.normal },
       margin: { left: marginLeft, right: marginRight },
+      tableWidth: maxLineWidth,
+      columnStyles: {
+        0: { cellWidth: col1Width },
+        1: { cellWidth: col2Width }
+      }
     });
 
     y = doc.lastAutoTable.finalY + 10;
     const finalData2 = [
-      ["Nombre del Aliado:", ""],
-      ["Nombre del Asesor empresarial:", ""],
-      ["Documento de identidad:", ""],
-      ["Firma:", ""]
+      ["Nombre del Aliado:", "Propais"],
+      ["Nombre del Asesor empresarial:", appState.asesorData.nombre || ""],
+      ["Documento de identidad:", appState.asesorData.documento || ""],
+      ["Firma:", "\n\n\n"],
     ];
     autoTable(doc, {
       startY: y,
@@ -672,139 +842,94 @@ export default function EncuestaSalidaTab({ id }) {
       theme: 'grid',
       styles: { fontSize: fontSizes.normal },
       margin: { left: marginLeft, right: marginRight },
+      tableWidth: maxLineWidth,
+      columnStyles: {
+        0: { cellWidth: col1Width },
+        1: { cellWidth: col2Width }
+      }
     });
 
     doc.save("EncuestaSalida.pdf");
   };
 
   return (
-    <div>
+    <div className="encuesta-modern-container">
       {/* <h3>Encuesta de Salida y Satisfacción</h3> */}
-      {loading ? (
+      {appState.loading ? (
         <p>Cargando...</p>
-      ) : error ? (
-        <div className="alert alert-danger">{error}</div>
+      ) : appState.error ? (
+        <div className="alert alert-danger">{appState.error}</div>
       ) : (
         <>
-          {initialQuestions.map((section) => (
-            <div key={section.component} className="card mb-3 p-3">
-              <h5>{section.component}</h5>
-              {section.questions.map((q) => {
-                if (q.options && q.options.length > 0) {
-                  return (
-                    <div key={q.text} className="mb-3">
-                      <label><strong>{q.text}</strong></label>
-                      <div>
-                        {q.options.map((opt) => {
-                          const key = section.component + "|" + q.text + "|" + opt.label;
-                          const record = recordsMap[key] || {};
-                          return (
-                            <div key={opt.label} style={{ marginLeft: '20px' }}>
+          {initialQuestions.map((section, sectionIdx) => (
+            <div key={section.component} className="encuesta-modern-section-card">
+              <h2 className="encuesta-modern-section-title">{section.component}</h2>
+              {section.questions.map((q, qIdx) => (
+                <div key={q.text} className="encuesta-modern-question-block">
+                  <div className="encuesta-modern-question-text">{q.text}</div>
+                  {q.options && (
+                    <div className="encuesta-modern-options-row">
+                      {q.options.map((opt) => {
+                        const key = section.component + "|" + q.text + "|" + opt.label;
+                        const record = appState.recordsMap[key] || {};
+                        // Usar índices para el name del radio
+                        const radioName = `radio-${sectionIdx}-${qIdx}`;
+                        return (
+                          <label key={opt.label} className={`encuesta-modern-option-label${record.seleccion ? ' selected' : ''}${opt.label.startsWith('Otro') ? ' hide-option' : ''}`}>
+                            <input
+                              type="radio"
+                              name={radioName}
+                              checked={!!record.seleccion}
+                              onChange={() => handleOptionChange(section.component, q.text, opt.label, true)}
+                            />
+                            <span className="encuesta-modern-option-text">{opt.label}</span>
+                            {opt.openEnded && record.seleccion && (
                               <input
-                                type="checkbox"
-                                checked={!!record.seleccion}
-                                onChange={(e) => handleOptionChange(section.component, q.text, opt.label, e.target.checked)}
+                                className="encuesta-modern-open-input"
+                                type="text"
+                                value={record.respuesta || ''}
+                                onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value)}
+                                placeholder="Escribe tu respuesta..."
                               />
-                              {" "}{opt.label}
-                              {opt.openEnded && record.seleccion && (
-                                <div style={{ marginLeft: '20px', marginTop: '5px' }}>
-                                  <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    value={record.respuesta || ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRecordsMap((prev) => ({
-                                        ...prev,
-                                        [key]: { ...prev[key], respuesta: val }
-                                      }));
-                                    }}
-                                    placeholder="Especifique..."
-                                  />
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {q.openEndedIfNo && (() => {
-                          const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
-                          if (noOption) {
-                            const noKey = section.component + "|" + q.text + "|" + noOption.label;
-                            const noRec = recordsMap[noKey] || {};
-                            if (noRec.seleccion) {
-                              const openKey = section.component + "|" + q.text + "|RazónNo";
-                              const openRec = recordsMap[openKey] || {};
-                              return (
-                                <div style={{ marginLeft: '20px', marginTop: '5px' }}>
-                                  <label>¿Por qué no participó?</label>
-                                  <input
-                                    type="text"
-                                    className="form-control form-control-sm"
-                                    value={openRec.respuesta || ""}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      setRecordsMap((prev) => ({
-                                        ...prev,
-                                        [openKey]: { respuesta: val, seleccion: false, record_id: prev[openKey]?.record_id }
-                                      }));
-                                    }}
-                                  />
-                                </div>
-                              );
-                            }
-                          }
-                          return null;
-                        })()}
-                      </div>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
-                  );
-                } else if (q.openEnded) {
-                  const key = section.component + "|" + q.text;
-                  const record = recordsMap[key] || {};
-                  return (
-                    <div key={q.text} className="mb-3">
-                      <label><strong>{q.text}</strong></label>
-                      <input
-                        type="text"
-                        className="form-control"
-                        value={record.respuesta || ""}
-                        onChange={(e) => handleOpenEndedChange(section.component, q.text, e.target.value)}
-                      />
-                    </div>
-                  );
-                } else {
-                  return null;
-                }
-              })}
+                  )}
+                  {/* Campo abierto dependiente de la opción 'No' */}
+                  {q.openEndedIfNo && (() => {
+                    const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
+                    if (!noOption) return null;
+                    const noKey = section.component + '|' + q.text + '|' + noOption.label;
+                    const noRecord = appState.recordsMap[noKey] || {};
+                    if (noRecord.seleccion) {
+                      const openKey = section.component + '|' + q.text + '|RazónNo';
+                      return (
+                        <input
+                          className="encuesta-modern-open-input"
+                          type="text"
+                          value={appState.recordsMap[openKey]?.respuesta || ''}
+                          onChange={e => handleOpenEndedChange(section.component, q.text + '|RazónNo', e.target.value)}
+                          placeholder="¿Por qué no participó?"
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              ))}
             </div>
           ))}
-
-          <div className="d-flex justify-content-between mt-4">
-            <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
-              Cancelar
-            </button>
-            <div>
-              {Object.values(recordsMap).some(r => r.record_id) && (
-                <button
-                  type="button"
-                  className="btn btn-info btn-sm me-2"
-                  onClick={handleOpenHistoryModal}
-                >
-                  Ver Historial de Cambios
-                </button>
-              )}
-              <button className="btn btn-primary btn-sm me-2" onClick={handleSave}>
-                Guardar
-              </button>
-              <button className="btn btn-success btn-sm" onClick={handleGeneratePDF}>
-                Generar PDF
-              </button>
-            </div>
+          <div className="encuesta-modern-bottom-bar">
+            <button className="encuesta-modern-btn encuesta-modern-btn-primary" onClick={handleSubmit}>Guardar</button>
+            <button className="encuesta-modern-btn encuesta-modern-btn-secondary" onClick={handleCancel}>Cancelar</button>
+            <button className="encuesta-modern-btn encuesta-modern-btn-pdf" onClick={handleGeneratePDF}>Descargar PDF</button>
           </div>
         </>
       )}
 
-      {showHistoryModal && (
+      {history.showModal && (
         <div
           className="modal fade show"
           style={{ display: 'block' }}
@@ -821,18 +946,18 @@ export default function EncuestaSalidaTab({ id }) {
                 <button
                   type="button"
                   className="close"
-                  onClick={() => setShowHistoryModal(false)}
+                  onClick={() => setHistory(prev => ({ ...prev, showModal: false }))}
                 >
                   <span>&times;</span>
                 </button>
               </div>
               <div className="modal-body" style={{ overflowY: 'auto' }}>
-                {historyError && (
-                  <div className="alert alert-danger">{historyError}</div>
+                {history.error && (
+                  <div className="alert alert-danger">{history.error}</div>
                 )}
-                {historyLoading ? (
+                {history.loading ? (
                   <div>Cargando historial...</div>
-                ) : history.length > 0 ? (
+                ) : history.data.length > 0 ? (
                   <div
                     className="table-responsive"
                     style={{ maxHeight: '400px', overflowY: 'auto' }}
@@ -851,7 +976,7 @@ export default function EncuestaSalidaTab({ id }) {
                         </tr>
                       </thead>
                       <tbody>
-                        {history.map((item) => (
+                        {history.data.map((item) => (
                           <tr key={item.id}>
                             <td>{item.user_id}</td>
                             <td>{item.username || 'Usuario'}</td>
@@ -874,7 +999,7 @@ export default function EncuestaSalidaTab({ id }) {
                 <button
                   type="button"
                   className="btn btn-secondary"
-                  onClick={() => setShowHistoryModal(false)}
+                  onClick={() => setHistory(prev => ({ ...prev, showModal: false }))}
                 >
                   Cerrar
                 </button>
@@ -884,7 +1009,7 @@ export default function EncuestaSalidaTab({ id }) {
         </div>
       )}
 
-      {showHistoryModal && <div className="modal-backdrop fade show"></div>}
+      {history.showModal && <div className="modal-backdrop fade show"></div>}
     </div>
   );
 }

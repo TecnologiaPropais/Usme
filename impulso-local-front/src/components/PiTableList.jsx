@@ -173,7 +173,7 @@ export default function PiTableList() {
     };
     fetchRelatedData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+  }, []);
 
   // Manejar Select2 con persistencia
   useEffect(() => {
@@ -413,24 +413,24 @@ export default function PiTableList() {
                                 <th key={column} style={{ 
                                   textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', 
                                   verticalAlign: 'middle',
-                                  width: column === 'id' ? '60px' :
+                                  width: column === 'id' ? '10px' :
                                          column === 'Nombre' ? '300px' :
                                          column === 'Empresa' ? '280px' :
                                          column === 'Localidad' ? '155px' :
                                          column === 'Asesor' ? '177px' :
-                                         column === 'Estado' ? '139px' : 'auto',
-                                  minWidth: column === 'id' ? '60px' :
+                                         column === 'Estado' ? '150px' : 'auto',
+                                  minWidth: column === 'id' ? '100px' :
                                           column === 'Nombre' ? '300px' :
                                           column === 'Empresa' ? '280px' :
                                           column === 'Localidad' ? '155px' :
                                           column === 'Asesor' ? '177px' :
-                                          column === 'Estado' ? '139px' : 'auto',
-                                  maxWidth: column === 'id' ? '60px' :
+                                          column === 'Estado' ? '150px' : 'auto',
+                                  maxWidth: column === 'id' ? '100px' :
                                           column === 'Nombre' ? '300px' :
                                           column === 'Empresa' ? '280px' :
                                           column === 'Localidad' ? '155px' :
                                           column === 'Asesor' ? '177px' :
-                                          column === 'Estado' ? '139px' : 'auto',
+                                          column === 'Estado' ? '150px' : 'auto',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
                                   whiteSpace: 'nowrap'
@@ -441,8 +441,8 @@ export default function PiTableList() {
                           </thead>
                           <tbody>
                             {paginatedRecords.length > 0 ? (
-                              paginatedRecords.map((record) => (
-                                <tr key={record.id}>
+                              paginatedRecords.map((record, index) => (
+                                <tr key={record.id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
                                   <td style={{ 
                                     textAlign: 'center', 
                                     verticalAlign: 'middle', 
@@ -586,30 +586,35 @@ export default function PiTableList() {
                         </table>
                         {/* Paginador avanzado */}
                         {totalPages > 1 && (
-                          <nav className="d-flex justify-content-center align-items-center mt-3">
-                            <ul className="pagination mb-0">
-                              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>&laquo;</button>
-                              </li>
-                              <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>&lsaquo;</button>
-                              </li>
-                              {getPageNumbers().map((page, idx) => (
-                                <li key={idx} className={`page-item ${page === currentPage ? 'active' : ''} ${page === '...' ? 'disabled' : ''}`}>
-                                  {page === '...'
-                                    ? <span className="page-link">...</span>
-                                    : <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
-                                  }
+                          <div className="d-flex flex-column align-items-center mt-3">
+                            <div className="align-self-start mb-2" style={{ color: '#6c757d' }}>
+                              Mostrando {((currentPage - 1) * rowsPerPage) + 1} a {Math.min(currentPage * rowsPerPage, filteredRecords.length)} de {filteredRecords.length} registros
+                            </div>
+                            <nav>
+                              <ul className="pagination mb-0">
+                                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                  <button className="page-link" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>&laquo;</button>
                                 </li>
-                              ))}
-                              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>&rsaquo;</button>
-                              </li>
-                              <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
-                                <button className="page-link" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
-                              </li>
-                            </ul>
-                          </nav>
+                                <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}>
+                                  <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>&lsaquo;</button>
+                                </li>
+                                {getPageNumbers().map((page, idx) => (
+                                  <li key={idx} className={`page-item ${page === currentPage ? 'active' : ''} ${page === '...' ? 'disabled' : ''}`}>
+                                    {page === '...'
+                                      ? <span className="page-link">...</span>
+                                      : <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
+                                    }
+                                  </li>
+                                ))}
+                                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                  <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>&rsaquo;</button>
+                                </li>
+                                <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}>
+                                  <button className="page-link" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
+                                </li>
+                              </ul>
+                            </nav>
+                          </div>
                         )}
                       </>
                     )}

@@ -5,7 +5,7 @@ require('dotenv').config();
 
 // Middleware para autenticar el token JWT
 const authenticateJWT = (req, res, next) => {
-  console.log("Authorization header:", req.headers.authorization); // Para revisar si el token llega correctamente
+  // console.log("Authorization header:", req.headers.authorization); // Para revisar si el token llega correctamente
 
   const authHeader = req.headers.authorization;
 
@@ -40,9 +40,9 @@ const authenticateRole = (requiredRole) => {
 const authorizePermission = (requiredPermission) => {
   return async (req, res, next) => {
     try {
-      console.log("=== AUTORIZACIÓN ===");
-      console.log("Verificando permisos para el rol:", req.user.role);
-      console.log("Permiso requerido:", requiredPermission);
+      // console.log("=== AUTORIZACIÓN ===");
+      // console.log("Verificando permisos para el rol:", req.user.role);
+      // console.log("Permiso requerido:", requiredPermission);
 
       // Cargar el rol y todos sus permisos
       const role = await Role.findByPk(req.user.role, {
@@ -53,7 +53,7 @@ const authorizePermission = (requiredPermission) => {
       });
 
       if (!role) {
-        console.log("Permiso denegado. El rol no existe.");
+        // console.log("Permiso denegado. El rol no existe.");
         return res.status(403).json({ message: 'Permiso denegado' });
       }
 
@@ -63,11 +63,11 @@ const authorizePermission = (requiredPermission) => {
       );
 
       if (!hasPermission) {
-        console.log("Permiso denegado. El rol no tiene el permiso requerido.");
+        // console.log("Permiso denegado. El rol no tiene el permiso requerido.");
         return res.status(403).json({ message: 'Permiso denegado' });
       }
 
-      console.log("Permiso concedido.");
+      // console.log("Permiso concedido.");
       next();
     } catch (error) {
       res.status(500).json({ message: 'Error verificando permisos', error: error.message });
