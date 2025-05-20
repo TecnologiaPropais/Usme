@@ -2,11 +2,12 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Role = require('../models/Role');
+const Localidad = require('../models/Localidad');
 require('dotenv').config();
 
 // Crear un nuevo usuario
 exports.createUser = async (req, res) => {
-  const { username, email, password, role_id } = req.body;
+  const { username, email, password, role_id, localidad } = req.body;
   try {
     // Encriptar la contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -17,6 +18,7 @@ exports.createUser = async (req, res) => {
       email,
       password: hashedPassword,
       role_id,
+      localidad,
     });
 
     res.status(201).json({
@@ -35,7 +37,14 @@ exports.createUser = async (req, res) => {
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.findAll({
-      include: [{ model: Role, attributes: ['role_name'] }], 
+      include: [
+        { model: Role, attributes: ['role_name'] },
+        { 
+          model: Localidad,
+          as: 'Localidad',
+          attributes: ['Localidad de la unidad de negocio']
+        }
+      ],
     });
     res.status(200).json(users);
   } catch (error) {
@@ -46,12 +55,20 @@ exports.getUsers = async (req, res) => {
   }
 };
 
-
 // Obtener un usuario por ID
 exports.getUserById = async (req, res) => {
   const { id } = req.params;
   try {
-    const user = await User.findByPk(id, { include: [Role] });
+    const user = await User.findByPk(id, {
+      include: [
+        Role,
+        {
+          model: Localidad,
+          as: 'Localidad',
+          attributes: ['Localidad de la unidad de negocio']
+        }
+      ]
+    });
     if (!user) {
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
@@ -67,7 +84,7 @@ exports.getUserById = async (req, res) => {
 // Actualizar un usuario
 exports.updateUser = async (req, res) => {
   const { id } = req.params;
-  const { username, email, password, role_id, status } = req.body;
+  const { username, email, password, role_id, status, localidad } = req.body;
   try {
     const user = await User.findByPk(id);
     if (!user) {
@@ -81,8 +98,11 @@ exports.updateUser = async (req, res) => {
       user.password = await bcrypt.hash(password, 10);
     }
     user.role_id = role_id || user.role_id;
-    if (status !== undefined) { // Permitir actualizar el campo de status
+    if (status !== undefined) {
       user.status = status;
+    }
+    if (localidad !== undefined) {
+      user.localidad = localidad;
     }
 
     await user.save();
@@ -94,7 +114,6 @@ exports.updateUser = async (req, res) => {
     });
   }
 };
-
 
 // Eliminar un usuario
 exports.deleteUser = async (req, res) => {
@@ -114,7 +133,6 @@ exports.deleteUser = async (req, res) => {
     });
   }
 };
-
 
 // Lógica de login
 exports.login = async (req, res) => {
@@ -136,9 +154,9 @@ exports.login = async (req, res) => {
     user.last_login = new Date();
     await user.save(); // Guardar la actualización en la base de datos
 
-    // Crear el token JWT con el ID del rol
+    // Crear el token JWT con el ID del rol y la localidad
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role_id },
+      { id: user.id, email: user.email, role: user.role_id, localidad: user.localidad },
       process.env.JWT_SECRET,
       { expiresIn: '1d' }
     );
@@ -162,10 +180,7 @@ exports.login = async (req, res) => {
   }
 };
 
-
-
-
-  const nodemailer = require('nodemailer'); // Para enviar correos
+const nodemailer = require('nodemailer'); // Para enviar correos
 
 // Solicitar recuperación de contraseña (Enviar el token por correo)
 exports.forgotPassword = async (req, res) => {
@@ -289,8 +304,5 @@ exports.getAsesors = async (req, res) => {
     });
   }
 };
-
-
-
 
   

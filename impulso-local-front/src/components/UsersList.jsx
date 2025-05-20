@@ -148,8 +148,7 @@ export default function UsersList() {
                                 <small>{user.email}</small>
                               </div>
                             </td>
-                            <td>{user.Role?.role_name || "Sin rol"}</td>{" "}
-                            {/* Se muestra el nombre del rol desde la relación */}
+                            <td>{user.Role?.role_name || "Sin rol"}</td>
                             <td>
                               <span
                                 className={`badge ${

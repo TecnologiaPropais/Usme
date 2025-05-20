@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import axios from 'axios';
+import { FaPlay, FaCheck } from 'react-icons/fa';
 
 export default function DescargaMasiva() {
   const [idsText, setIdsText] = useState('');
@@ -56,46 +57,78 @@ export default function DescargaMasiva() {
     setProgress([]);
   };
 
+  // Función para determinar el color del resultado
+  const getResultColor = (line) => {
+    if (line.includes('descarga realizada')) return '#27ae60'; // verde
+    if (line.includes('no se encontraron archivos') || line.includes('error en la descarga')) return '#e74c3c'; // rojo
+    return '#333';
+  };
+
   return (
-    <div className="descarga-masiva-container" style={{ maxWidth: 800, margin: '0 auto', padding: 24 }}>
-      <h2>Descarga masiva</h2>
-      <div className="card p-3 mb-3">
-        <div style={{ marginBottom: 8 }}>
-          Esta función permite realizar una descarga masiva pasándole un listado de los ID de las empresas que se desean descargar.
+    <div className="descarga-masiva-container" style={{ width: '100%', padding: 24 }}>
+      <div className="card p-3 mb-3" style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: '100%' }}>
+        <div style={{ marginBottom: 8, fontSize: 15 }}>
+          Esta función permite realizar una descarga masiva pasándole un listado de los <b>ID</b> de las empresas que se desean descargar.
         </div>
         <textarea
           className="form-control"
-          rows={4}
+          rows={10}
           placeholder="Coloca aquí los ID, uno por línea"
           value={idsText}
           onChange={e => setIdsText(e.target.value)}
           disabled={downloading}
+          style={{ borderRadius: 8, fontSize: 16, background: '#fff', border: '1px solid #e0e0e0' }}
         />
       </div>
-      <div className="card p-3 mb-3">
-        <div className="alert alert-info mb-3">
-          Se han detectado <b>{ids.length}</b> ID{ids.length !== 1 ? 's' : ''} de empresas, si desea continuar <b>haga click</b> en el botón de abajo para iniciar el proceso de descarga.
+      <div className="card p-3 mb-3" style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: '100%' }}>
+        <div className="d-flex align-items-center mb-3" style={{ background: '#f8fbff', border: '1px solid #e3eafc', borderRadius: 8, padding: '10px 16px' }}>
+          <span style={{ color: '#2196f3', fontSize: 22, marginRight: 12, display: 'flex', alignItems: 'center' }}>
+            <i className="fas fa-info-circle"></i>
+          </span>
+          <span style={{ fontSize: 15, color: '#222' }}>
+            Se han detectado <b style={{ color: '#e74c3c' }}>{ids.length} ID{ids.length !== 1 ? 's' : ''}</b> de empresas, si desea continuar <b>haga click</b> en el botón de abajo para iniciar el proceso de descarga.
+          </span>
         </div>
-        <button
-          className="btn btn-success mr-2"
-          onClick={handleDownload}
-          disabled={downloading || ids.length === 0}
-        >
-          {downloading ? 'Descargando...' : 'Iniciar descarga'}
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={handleClear}
-          disabled={downloading}
-        >
-          Limpiar datos
-        </button>
+        <div className="d-flex align-items-center" style={{ gap: 12 }}>
+          <button
+            className="btn btn-success d-flex align-items-center"
+            onClick={handleDownload}
+            disabled={downloading || ids.length === 0}
+            style={{ fontWeight: 500 }}
+          >
+            <FaPlay style={{ marginRight: 8 }} />
+            {downloading ? 'Descargando...' : 'Iniciar descarga'}
+          </button>
+          <button
+            className="btn btn-outline-secondary d-flex align-items-center"
+            onClick={handleClear}
+            disabled={downloading}
+            style={{ fontWeight: 500 }}
+          >
+            <FaCheck style={{ marginRight: 8 }} />
+            Limpiar datos
+          </button>
+        </div>
       </div>
-      <div className="card p-3">
-        <div style={{ minHeight: 80 }}>
-          {progress.map((line, idx) => (
-            <div key={idx}>{line}</div>
-          ))}
+      <div className="card p-3 mb-3" style={{ background: '#fff', borderRadius: 12, boxShadow: '0 1px 4px #e0e0e0', width: '100%' }}>
+        <div style={{ padding: 0 }}>
+          <textarea
+            className="form-control"
+            style={{
+              background: '#f6f7fa',
+              borderRadius: 8,
+              minHeight: 80,
+              fontWeight: 500,
+              fontSize: 15,
+              color: '#222',
+              resize: 'vertical',
+              border: '1px solid #e0e0e0',
+              width: '100%'
+            }}
+            rows={10}
+            value={progress.map((line) => line).join('\n')}
+            readOnly
+          />
         </div>
       </div>
     </div>

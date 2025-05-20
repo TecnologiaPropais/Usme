@@ -8,11 +8,22 @@ export default function UserView() {
   const { id } = useParams(); // Obtener el ID del usuario desde la URL
   const [user, setUser] = useState(null);
   const [roles, setRoles] = useState([]); // Estado para almacenar los roles disponibles
+  const [localidades, setLocalidades] = useState([]); // Estado para almacenar las localidades
   const [loading, setLoading] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [alert, setAlert] = useState({ message: '', type: '' });
-  const [updatedData, setUpdatedData] = useState({ username: '', email: '', role_id: '', password: '' });
+  const [updatedData, setUpdatedData] = useState({ 
+    username: '', 
+    email: '', 
+    role_id: '', 
+    password: '',
+    localidad: '' // Agregar localidad al estado
+  });
   const navigate = useNavigate();
+
+  // Obtener el role_id del usuario logueado
+  const loggedUserRoleId = localStorage.getItem('role_id');
+  const isSuperAdmin = loggedUserRoleId === '1'; // Asumiendo que 1 es el ID del SuperAdmin
 
   useEffect(() => {
     const fetchUserAndRoles = async () => {
@@ -34,12 +45,24 @@ export default function UserView() {
           },
         });
 
+        // Obtener las localidades disponibles
+        const localidadesResponse = await axios.get(
+          `${config.urls.tables}/inscription_localidad_de_la_unidad_de_negocio/records`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
         setUser(response.data);
-        setRoles(rolesResponse.data); // Almacenar los roles obtenidos
+        setRoles(rolesResponse.data);
+        setLocalidades(localidadesResponse.data);
         setUpdatedData({
           username: response.data.username,
           email: response.data.email,
-          role_id: response.data.role_id, // Almacenar el ID del rol actual
+          role_id: response.data.role_id,
+          localidad: response.data.localidad || '' // Agregar localidad al estado inicial
         });
         setLoading(false);
       } catch (error) {
@@ -148,6 +171,24 @@ export default function UserView() {
                             ))}
                           </select>
                         </div>
+                        {isSuperAdmin && (
+                          <div className="form-group">
+                            <label>Localidad</label>
+                            <select
+                              name="localidad"
+                              className="form-control"
+                              value={updatedData.localidad}
+                              onChange={handleChange}
+                            >
+                              <option value="">Seleccione una localidad</option>
+                              {localidades.map((loc) => (
+                                <option key={loc.id} value={loc.id}>
+                                  {loc["Localidad de la unidad de negocio"]}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                         <div className="form-group">
                           <label>Nueva Contraseña</label>
                           <input
@@ -167,6 +208,14 @@ export default function UserView() {
                         <p><strong>Nombre de usuario:</strong> {user.username}</p>
                         <p><strong>Email:</strong> {user.email}</p>
                         <p><strong>Rol:</strong> {user.Role?.role_name || 'Sin rol'}</p>
+                        {isSuperAdmin && (
+                          <p>
+                            <strong>Localidad:</strong>{' '}
+                            {user.localidad
+                              ? localidades.find(l => String(l.id) === String(user.localidad))?.["Localidad de la unidad de negocio"] || 'No asignada'
+                              : 'No asignada'}
+                          </p>
+                        )}
                         <p><strong>Estado:</strong> {user.status === 1 ? 'Activo' : 'Inactivo'}</p>
                         <p><strong>Registrado:</strong> {new Date(user.created_at).toLocaleDateString()}</p>
                         <p><strong>Último Login:</strong> {user.last_login ? new Date(user.last_login).toLocaleString() : 'Nunca'}</p>

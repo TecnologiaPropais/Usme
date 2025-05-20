@@ -340,213 +340,82 @@ export default function DynamicTableList() {
                   <div className="d-flex justify-content-center p-3">Cargando...</div>
                 ) : (
                       <>
-                        <table className="table table-hover text-nowrap minimal-table" style={{ 
-                          tableLayout: 'fixed', 
-                          width: 'auto', 
-                          minWidth: '1300px',
-                          borderCollapse: 'separate',
-                          borderSpacing: 0
-                        }}>
+                        <table className="table table-hover text-nowrap minimal-table table-container">
                     <thead>
                       <tr>
                               {fixedColumns.map((column) => (
-                                <th key={column} style={{ 
-                                  textAlign: column === 'Nombre' || column === 'Empresa' ? 'left' : 'center', 
-                                  verticalAlign: 'middle',
-                                  width: column === 'ID' ? '10px' :
-                                          column === 'Nombre' ? '300px' :
-                                          column === 'Empresa' ? '280px' :
-                                          column === 'Localidad' ? '155px' :
-                                          column === 'Asesor' ? '177px' :
-                                          column === 'Estado' ? '210px' : 'auto',
-                                  minWidth: column === 'ID' ? '100px' :
-                                          column === 'Nombre' ? '300px' :
-                                          column === 'Empresa' ? '280px' :
-                                          column === 'Localidad' ? '155px' :
-                                          column === 'Asesor' ? '177px' :
-                                          column === 'Estado' ? '210px' : 'auto',
-                                  maxWidth: column === 'ID' ? '100px' :
-                                          column === 'Nombre' ? '300px' :
-                                          column === 'Empresa' ? '280px' :
-                                          column === 'Localidad' ? '155px' :
-                                          column === 'Asesor' ? '177px' :
-                                          column === 'Estado' ? '210px' : 'auto',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap'
-                                }}>{column.charAt(0).toUpperCase() + column.slice(1)}</th>
+                                <th key={column} className={`table-header ${
+                                  column === 'ID' ? 'col-id' :
+                                  column === 'Nombre' ? 'col-nombre' :
+                                  column === 'Empresa' ? 'col-empresa' :
+                                  column === 'Localidad' ? 'col-localidad' :
+                                  column === 'Asesor' ? 'col-asesor' :
+                                  column === 'Estado' ? 'col-estado' : ''
+                                }`}>
+                                  {column.charAt(0).toUpperCase() + column.slice(1)}
+                                </th>
                               ))}
-                              <th style={{ textAlign: 'center', verticalAlign: 'middle', width: '160px' }}>Acciones</th>
+                              <th className="table-header col-acciones">Acciones</th>
                       </tr>
                     </thead>
                     <tbody>
                             {paginatedRecords.length > 0 ? (
                               paginatedRecords.map((record, index) => (
                                 <tr key={record.id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
-                                  <td style={{ 
-                                    textAlign: 'center', 
-                                    verticalAlign: 'middle', 
-                                    width: '47.5px',
-                                    minWidth: '47.5px',
-                                    maxWidth: '47.5px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}>{record.id}</td>
-                                  <td style={{ 
-                                    textAlign: 'left', 
-                                    verticalAlign: 'middle', 
-                                    width: '300px',
-                                    minWidth: '300px',
-                                    maxWidth: '300px',
-                                    overflow: 'hidden'
-                                  }}>
-                                    <div style={{
-                                      fontWeight: 500,
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>
+                                  <td className="table-cell col-id">{record.id}</td>
+                                  <td className="table-cell col-nombre">
+                                    <div className="cell-content">
                                       {(record.Nombres || '') + ' ' + (record.Apellidos || '')}
                                     </div>
-                                    <div style={{
-                                      fontSize: '0.9em', 
-                                      color: '#888',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>
+                                    <div className="cell-subtext">
                                       <i className="fas fa-envelope" style={{marginRight: 4}}></i>
                                       {record["Correo electronico"] || ''}
                                     </div>
                                   </td>
-                                  <td style={{ 
-                                    textAlign: 'left', 
-                                    verticalAlign: 'middle', 
-                                    width: '280px',
-                                    minWidth: '280px',
-                                    maxWidth: '280px',
-                                    overflow: 'hidden'
-                                  }}>
-                                    <div style={{
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>{record["Nombre del emprendimiento"]}</div>
-                                    <div style={{
-                                      fontSize: '0.9em', 
-                                      color: '#888',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      whiteSpace: 'nowrap'
-                                    }}>
+                                  <td className="table-cell col-empresa">
+                                    <div className="cell-content">
+                                      {record["Nombre del emprendimiento"]}
+                                    </div>
+                                    <div className="cell-subtext">
                                       CC: {record["Numero de documento de identificacion ciudadano"] || record["Numero de identificacion"] || ''}
                                     </div>
                                   </td>
-                                  <td style={{ 
-                                    textAlign: 'center', 
-                                    verticalAlign: 'middle', 
-                                    width: '155px',
-                                    minWidth: '155px',
-                                    maxWidth: '155px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}>{(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}</td>
-                                  <td style={{ 
-                                    textAlign: 'center', 
-                                    verticalAlign: 'middle', 
-                                    width: '177px',
-                                    minWidth: '177px',
-                                    maxWidth: '177px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}>{(users.find(u => String(u.id) === String(record.Asesor))?.username || '')}</td>
-                                  <td style={{ 
-                                    textAlign: 'center', 
-                                    verticalAlign: 'middle', 
-                                    width: '150px',
-                                    minWidth: '150px',
-                                    maxWidth: '150px',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap'
-                                  }}>
+                                  <td className="table-cell col-localidad">
+                                    {(localidades.find(l => String(l.id) === String(record["Localidad de la unidad de negocio"]))?.["Localidad de la unidad de negocio"] || record["Localidad de la unidad de negocio"] || '' )}
+                                  </td>
+                                  <td className="table-cell col-asesor">
+                                    {(users.find(u => String(u.id) === String(record.Asesor))?.username || '')}
+                                  </td>
+                                  <td className="table-cell col-estado">
                                     {(() => {
                                       const estadoNombre = (estados.find(e => String(e.id) === String(record.Estado))?.Estado || '').trim().toLowerCase();
                                       if (estadoNombre === 'listado final') {
                                         return (
-                                          <span style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            borderRadius: '8px',
-                                            backgroundColor: '#a5f3a1', // Verde claro
-                                            color: '#217a2b',           // Verde oscuro
-                                            fontWeight: 600,
-                                            fontSize: '14px',
-                                            border: 'none',
-                                          }}>
+                                          <span className="badge badge-success">
                                             Listado final
                                           </span>
                                         );
                                       } else if (estadoNombre === 'rechazado' || estadoNombre === 'retirado') {
                                         return (
-                                          <span style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            borderRadius: '8px',
-                                            backgroundColor: '#ffcdd2', // Rojo claro
-                                            color: '#c62828',           // Rojo oscuro
-                                            fontWeight: 600,
-                                            fontSize: '14px',
-                                            border: 'none',
-                                          }}>
+                                          <span className="badge badge-danger">
                                             {estadoNombre.charAt(0).toUpperCase() + estadoNombre.slice(1)}
                                           </span>
                                         );
                                       } else if (estadoNombre === 'subsanacion') {
                                         return (
-                                          <span style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            borderRadius: '8px',
-                                            backgroundColor: '#fff9c4', // Amarillo claro
-                                            color: '#f57f17',           // Amarillo oscuro
-                                            fontWeight: 600,
-                                            fontSize: '14px',
-                                            border: 'none',
-                                          }}>
+                                          <span className="badge badge-warning">
                                             Subsanacion
                                           </span>
                                         );
                                       } else if (estadoNombre === 'preseleccionado') {
                                         return (
-                                          <span style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            borderRadius: '8px',
-                                            backgroundColor: '#bbdefb', // Azul claro
-                                            color: '#1565c0',           // Azul oscuro
-                                            fontWeight: 600,
-                                            fontSize: '14px',
-                                            border: 'none',
-                                          }}>
+                                          <span className="badge badge-info">
                                             Preseleccionado
                                           </span>
                                         );
                                       } else if (estadoNombre === 'revision documental') {
                                         return (
-                                          <span style={{
-                                            display: 'inline-block',
-                                            padding: '4px 12px',
-                                            borderRadius: '8px',
-                                            backgroundColor: '#e0e0e0', // Gris claro
-                                            color: '#424242',           // Gris oscuro
-                                            fontWeight: 600,
-                                            fontSize: '14px',
-                                            border: 'none',
-                                          }}>
+                                          <span className="badge badge-secondary">
                                             Revision documental
                                           </span>
                                         );
@@ -554,27 +423,27 @@ export default function DynamicTableList() {
                                         return estados.find(e => String(e.id) === String(record.Estado))?.Estado || '';
                                       }
                                     })()}
-                              </td>
-                                  <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
-                              <button
+                                  </td>
+                                  <td className="table-cell col-acciones">
+                                    <button
                                       className="btn btn-info btn-sm"
                                       onClick={() => navigate(`/table/inscription_caracterizacion/record/${record.id}`)}
                                       title="Editar registro"
                                     >
                                       <i className="fas fa-edit"></i> Editar
-                              </button>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))
+                            ) : (
+                              <tr>
                                 <td colSpan={fixedColumns.length + 1} className="text-center">
                                   No hay registros para mostrar
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
                       </>
                     )}
                   </div>

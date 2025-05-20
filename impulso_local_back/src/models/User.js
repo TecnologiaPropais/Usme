@@ -1,6 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../utils/sequelize');
 const Role = require('./Role'); // Importamos el modelo de Role para crear la relación
+const Localidad = require('./Localidad'); // Importamos el modelo de Localidad
 
 const User = sequelize.define('User', {
   username: {
@@ -28,6 +29,14 @@ const User = sequelize.define('User', {
       key: 'id',
     },
   },
+  localidad: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: 'inscription_localidad_de_la_unidad_de_negocio',
+      key: 'id',
+    },
+  },
   status: {
     type: DataTypes.INTEGER,
     defaultValue: 1, // 1 para activo, 0 para inactivo
@@ -46,5 +55,11 @@ const User = sequelize.define('User', {
 
 // Relación de Usuario con Rol (Muchos a Uno)
 User.belongsTo(Role, { foreignKey: 'role_id' });
+
+// Relación de Usuario con Localidad (Muchos a Uno)
+User.belongsTo(Localidad, {
+  foreignKey: 'localidad',
+  as: 'Localidad'
+});
 
 module.exports = User;

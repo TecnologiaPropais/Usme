@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import './css/UsersList.css'; // Ajusta la ruta si es necesario
+import './css/DynamicTableList.css'; // Para estilos similares a PiTableList
 import config from '../config';
+import { FaSearch } from 'react-icons/fa';
 
 export default function ProviderTableList() {
   // Estados y variables
@@ -22,6 +24,27 @@ export default function ProviderTableList() {
   const [multiSelectFields, setMultiSelectFields] = useState([]); // Campos de clave foránea
   const [bulkUpdateData, setBulkUpdateData] = useState({}); // Datos para actualización masiva
   const [fieldOptions, setFieldOptions] = useState({}); // Opciones para campos de clave foránea
+
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [filters, setFilters] = useState({
+    search: '',
+    elemento: '',
+    categoria: '',
+    ejecutivo: ''
+  });
+
+  // Columnas fijas que queremos mostrar
+  const defaultColumns = [
+    'Categoría',
+    'Elemento',
+    'Descripcion corta',
+    'Nombre Proveedor',
+    'Ejecutivo de cuenta',
+    'Valor catalogo',
+    'Precio',
+    'Calificacion'
+  ];
 
   const navigate = useNavigate();
 
@@ -45,14 +68,15 @@ export default function ProviderTableList() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            tableType: 'provider' // Especificamos que estamos trabajando con tablas de proveedores
+            tableType: 'provider',
+            includeRelations: true
           }
         }
       );
 
       const fetchedColumns = fieldsResponse.data.map((column) => column.column_name);
       setColumns(fetchedColumns);
-      setFieldsData(fieldsResponse.data); // Guardar información completa de los campos
+      setFieldsData(fieldsResponse.data);
 
       // Identificar campos de selección múltiple (claves foráneas)
       const multiSelectFieldsArray = fieldsResponse.data
@@ -67,7 +91,7 @@ export default function ProviderTableList() {
       if (localVisibleColumns.length > 0) {
         setVisibleColumns(localVisibleColumns);
       } else {
-        setVisibleColumns(fetchedColumns); // Mostrar todas las columnas por defecto
+        setVisibleColumns(fetchedColumns);
       }
 
       // Obtener registros
@@ -78,14 +102,56 @@ export default function ProviderTableList() {
             Authorization: `Bearer ${token}`,
           },
           params: {
-            tableType: 'provider' // Especificamos que estamos trabajando con tablas de proveedores
+            tableType: 'provider'
           }
         }
       );
-      setRecords(recordsResponse.data); // Establecer registros
 
+      // Cargar las opciones de los campos foráneos antes de mostrar los registros
+      if (multiSelectFieldsArray.length > 0) {
+        const options = {};
+        for (const field of multiSelectFieldsArray) {
+          const fieldData = fieldsResponse.data.find(f => f.column_name === field);
+          if (!fieldData || !fieldData.foreign_table_name) {
+            continue;
+          }
+
+          const relatedTableResponse = await axios.get(
+            `${config.urls.tables}/${fieldData.foreign_table_name}/records`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+              params: {
+                tableType: 'provider'
+              }
+            }
+          );
+
+          const labelField = fieldData.foreign_column || 
+                           (relatedTableResponse.data[0] && 
+                            Object.keys(relatedTableResponse.data[0]).find(key => 
+                              key === field ||
+                              key.toLowerCase().includes('nombre') || 
+                              key.toLowerCase().includes('descripcion')
+                            ));
+
+          if (!labelField) {
+            continue;
+          }
+
+          options[field] = relatedTableResponse.data.map(record => ({
+            value: record.id,
+            label: record[labelField] || record.id
+          }));
+        }
+        setFieldOptions(options);
+      }
+
+      setRecords(recordsResponse.data);
       setLoading(false);
     } catch (error) {
+      console.error('Error en fetchTableData:', error);
       setError('Error obteniendo los registros');
       setLoading(false);
     }
@@ -182,33 +248,61 @@ export default function ProviderTableList() {
   const getColumnDisplayValue = (record, column) => {
     if (multiSelectFields.includes(column)) {
       // Es un campo de clave foránea
-      const fieldData = fieldsData.find((field) => field.column_name === column); // Uso de fieldsData
+      const fieldData = fieldsData.find((field) => field.column_name === column);
       const foreignKeyValue = record[column];
 
+      if (!foreignKeyValue) return '';
+
+      // Buscar en las opciones del campo
       if (fieldOptions[column]) {
         const option = fieldOptions[column].find(
-          (opt) => opt.value === foreignKeyValue
+          (opt) => String(opt.value) === String(foreignKeyValue)
         );
         if (option) {
-          return option.label; // Mostrar el nombre asociado
+          return option.label;
         }
       }
 
-      return foreignKeyValue; // Si no se encuentra el nombre, mostrar el ID
+      return foreignKeyValue;
     } else {
-      return record[column];
+      return record[column] || '';
     }
   };
 
-  // Aplicar el filtro de búsqueda
-  const filteredRecords = search
-    ? records.filter((record) => {
-        return visibleColumns.some((column) => {
-          const value = getColumnDisplayValue(record, column);
-          return value?.toString()?.toLowerCase().includes(search.toLowerCase());
-        });
-      })
-    : records;
+  // Aplicar filtros a los registros
+  const filteredRecords = records.filter(record => {
+    const matchesSearch = !filters.search || 
+      (getColumnDisplayValue(record, 'Nit/cedula')?.toString().toLowerCase().includes(filters.search.toLowerCase()) ||
+       getColumnDisplayValue(record, 'Nombre Proveedor')?.toString().toLowerCase().includes(filters.search.toLowerCase()));
+    
+    const matchesElemento = !filters.elemento || 
+      getColumnDisplayValue(record, 'Elemento') === filters.elemento;
+    
+    const matchesCategoria = !filters.categoria || 
+      getColumnDisplayValue(record, 'Categoría') === filters.categoria;
+    
+    const matchesEjecutivo = !filters.ejecutivo || 
+      getColumnDisplayValue(record, 'Ejecutivo de cuenta') === filters.ejecutivo;
+
+    return matchesSearch && matchesElemento && matchesCategoria && matchesEjecutivo;
+  });
+
+  // Calcular paginación
+  const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+  const paginatedRecords = filteredRecords.slice(
+    (currentPage - 1) * recordsPerPage,
+    currentPage * recordsPerPage
+  );
+
+  // Obtener opciones únicas para los filtros
+  const getUniqueOptions = (field) => {
+    const options = new Set();
+    records.forEach(record => {
+      const value = getColumnDisplayValue(record, field);
+      if (value) options.add(value);
+    });
+    return Array.from(options).sort();
+  };
 
   // Función para limpiar filtros y mostrar todos los registros
   const clearFilters = () => {
@@ -286,212 +380,202 @@ export default function ProviderTableList() {
     }
   };
 
-  // Obtener opciones para los campos de selección múltiple (claves foráneas)
+  // Eliminar el useEffect que carga las opciones ya que ahora se cargan junto con los registros
   useEffect(() => {
-    const fetchFieldOptions = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const options = {};
-
-        for (const field of multiSelectFields) {
-          const response = await axios.get(
-            `${config.urls.tables}/${selectedTable}/field-options/${field}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-              params: {
-                tableType: 'provider' // Especificamos que estamos trabajando con tablas de proveedores
-              }
-            }
-          );
-          options[field] = response.data.options;
-        }
-        setFieldOptions(options);
-      } catch (error) {
-        setError('Error obteniendo las opciones de los campos');
-      }
-    };
-
-    if (multiSelectFields.length > 0 && selectedTable) {
-      fetchFieldOptions();
-    } else {
+    if (multiSelectFields.length > 0 && selectedTable && fieldsData.length > 0) {
       setFieldOptions({});
     }
-  }, [multiSelectFields, selectedTable]);
+  }, [multiSelectFields, selectedTable, fieldsData]);
 
+  // Calcular rango de registros mostrados
+  const startRecord = (currentPage - 1) * recordsPerPage + 1;
+  const endRecord = Math.min(currentPage * recordsPerPage, filteredRecords.length);
+
+  // Función para formatear a moneda colombiana
+  const formatCurrency = (value) => {
+    if (value === undefined || value === null || value === '') return '';
+    const number = Number(value);
+    if (isNaN(number)) return value;
+    return number.toLocaleString('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 });
+  };
+
+  // Render de la tabla estilo PiTableList
   return (
-    <div className="content-wrapper">
-      {/* Cabecera */}
+    <div className="content-wrapper" style={{ paddingTop: 0, marginTop: 53 }}>
       <section className="content-header">
         <div className="container-fluid">
           <div className="row mb-2">
-            <div className="col-sm-6">
-            </div>
-            <div className="col-sm-6 d-flex justify-content-end">
-              <button
-                className="btn btn-light mr-2"
-                onClick={() => setShowSearchBar(!showSearchBar)}
-              >
-                {showSearchBar ? 'Ocultar búsqueda' : 'Mostrar búsqueda'}
-              </button>
-              <select
-                id="tableSelect"
-                className="form-control"
-                value={selectedTable}
-                onChange={handleTableSelect}
-                style={{ maxWidth: '250px' }}
-              >
-                <option value="">-- Selecciona una tabla --</option>
-                {tables.length > 0 &&
-                  tables.map((table) => (
-                    <option key={table.table_name} value={table.table_name}>
-                      {table.table_name}
-                    </option>
-                  ))}
-              </select>
-            </div>
+            <div className="col-sm-6"></div>
           </div>
         </div>
       </section>
-
-      {/* Contenido principal */}
       <section className="content">
         <div className="container-fluid">
-          {/* Otros contenidos */}
           <div className="row">
             <div className="col-12">
               {error && <div className="alert alert-danger">{error}</div>}
-
               <div className="card">
-                <div className="card-body table-responsive p-0">
-                  {/* Barra de búsqueda */}
-                  {showSearchBar && (
-                    <div className="row mb-3">
-                      <div className="col-sm-6">
-                        <div className="form-group">
-                          <input
-                            type="text"
-                            className="form-control search-input"
-                            placeholder="Buscar en columnas visibles..."
-                            value={search}
-                            onChange={handleSearchChange}
-                          />
-                        </div>
-                      </div>
+                <div className="card-body">
+                  {/* Buscador y selector de cantidad de registros */}
+                  <div className="row mb-3">
+                    <div className="col-md-6" style={{ position: 'relative' }}>
+                      <i className="fas fa-search" style={{ position: 'absolute', left: 20, top: '50%', transform: 'translateY(-50%)', color: '#6c757d', fontSize: 16 }}></i>
+                      <input
+                        type="text"
+                        className="form-control buscador-input"
+                        style={{ color: '#000', paddingLeft: 40, width: '538px' }}
+                        placeholder="Buscar por NIT o Nombre de proveedor"
+                        value={filters.search}
+                        onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                      />
+                      <style>{`.buscador-input::placeholder { color: #6c757d !important; opacity: 1; }`}</style>
                     </div>
-                  )}
-
-                  {/* Select de columnas */}
-                  {columns.length > 0 && (
-                    <div className="form-group mb-3">
-                      <label>Selecciona las columnas a mostrar:</label>
-                      <select className="select2" multiple="multiple" style={{ width: '100%' }}>
-                        {columns.map((column) => (
-                          <option key={column} value={column}>
-                            {column}
-                          </option>
+                    <div className="col-md-6 d-flex justify-content-end align-items-center">
+                      <span style={{ marginRight: 8, color: '#6c757d', fontWeight: 500 }}>Mostrando</span>
+                      <select
+                        className="form-control"
+                        style={{ width: 80, display: 'inline-block', marginRight: 8 }}
+                        value={recordsPerPage}
+                        onChange={e => {
+                          setRecordsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                      >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                      </select>
+                      <span style={{ color: '#6c757d', fontWeight: 500 }}>Registros</span>
+                    </div>
+                  </div>
+                  {/* Filtros alineados horizontalmente */}
+                  <div className="row mb-3">
+                    <div className="col-sm-4">
+                      <select className="form-control" value={filters.elemento} onChange={e => setFilters(prev => ({ ...prev, elemento: e.target.value }))}>
+                        <option value="">Todos los Elementos</option>
+                        {getUniqueOptions('Elemento').map(option => (
+                          <option key={option} value={option}>{option}</option>
                         ))}
                       </select>
                     </div>
-                  )}
-
-                  {/* Tabla de registros */}
-                  {loading ? (
-                    <div className="d-flex justify-content-center p-3">Cargando...</div>
-                  ) : (
-                    <table className="table table-hover text-nowrap minimal-table">
+                    <div className="col-sm-4">
+                      <select className="form-control" value={filters.categoria} onChange={e => setFilters(prev => ({ ...prev, categoria: e.target.value }))}>
+                        <option value="">Todas las Categorías</option>
+                        {getUniqueOptions('Categoría').map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="col-sm-4">
+                      <select className="form-control" value={filters.ejecutivo} onChange={e => setFilters(prev => ({ ...prev, ejecutivo: e.target.value }))}>
+                        <option value="">Todos los Ejecutivos</option>
+                        {getUniqueOptions('Ejecutivo de cuenta').map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {/* Tabla tipo PiTableList */}
+                  <div className="table-responsive">
+                    <table className="table table-hover text-nowrap minimal-table" style={{ tableLayout: 'fixed', width: 'auto', minWidth: '1300px', borderCollapse: 'separate', borderSpacing: 0 }}>
                       <thead>
                         <tr>
-                          {isPrimaryTable && (
-                            <th>
-                              <input
-                                type="checkbox"
-                                onChange={handleSelectAll}
-                                checked={
-                                  selectedRecords.length === filteredRecords.length &&
-                                  filteredRecords.length > 0
-                                }
-                              />
-                            </th>
-                          )}
-                          {visibleColumns.length > 0 &&
-                            visibleColumns.map((column) => (
-                              <th key={column}>{column}</th>
-                            ))}
-                          <th>Acciones</th>
+                          {defaultColumns.map((column) => (
+                            <th key={column} style={{
+                              textAlign: column === 'Nombre Proveedor' ? 'left' : 'center',
+                              verticalAlign: 'middle',
+                              width: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
+                              minWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
+                              maxWidth: column === 'Nombre Proveedor' ? '300px' : column === 'Descripcion corta' ? '280px' : column === 'Elemento' ? '155px' : column === 'Ejecutivo de cuenta' ? '177px' : column === 'Categoría' ? '150px' : 'auto',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>{column}</th>
+                          ))}
+                          <th style={{ textAlign: 'center', verticalAlign: 'middle', width: '120px' }}>Acciones</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredRecords.length > 0 &&
-                          filteredRecords.map((record) => (
-                            <tr key={record.id}>
-                              {isPrimaryTable && (
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedRecords.includes(record.id)}
-                                    onChange={() => handleCheckboxChange(record.id)}
-                                  />
-                                </td>
-                              )}
-                              {visibleColumns.map((column) => (
-                                <td key={column}>{getColumnDisplayValue(record, column)}</td>
-                              ))}
-                              <td>
+                        {loading ? (
+                          <tr><td colSpan={defaultColumns.length + 1} className="text-center">Cargando...</td></tr>
+                        ) : paginatedRecords.length === 0 ? (
+                          <tr><td colSpan={defaultColumns.length + 1} className="text-center">No hay registros que coincidan con los filtros</td></tr>
+                        ) : (
+                          paginatedRecords.map((record, index) => (
+                            <tr key={record.id} style={{ backgroundColor: index % 2 === 0 ? '#ffffff' : '#f8f9fa' }}>
+                              {/* Categoría */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Categoría')}</td>
+                              {/* Elemento */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Elemento')}</td>
+                              {/* Descripción corta */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Descripcion corta')}</td>
+                              {/* Nombre Proveedor + NIT/CC debajo */}
+                              <td style={{ verticalAlign: 'middle', fontWeight: 700, fontSize: 16, color: '#222', textAlign: 'left', width: '300px', minWidth: '300px', maxWidth: '300px', overflow: 'hidden' }}>
+                                {getColumnDisplayValue(record, 'Nombre Proveedor')}
+                                <div style={{ fontWeight: 400, fontSize: 14, color: '#757575', marginTop: 2 }}>
+                                  {record['Correo'] && <span><i className="fas fa-envelope" style={{ marginRight: 4 }}></i>{record['Correo']}</span>}
+                                  {record['Correo'] && record['Nit/cedula'] && <span style={{ margin: '0 6px' }}>|</span>}
+                                  {record['Nit/cedula'] && <span>NIT/CC: {record['Nit/cedula']}</span>}
+                                </div>
+                              </td>
+                              {/* Ejecutivo de cuenta */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Ejecutivo de cuenta')}</td>
+                              {/* Valor Catálogo */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Valor Catalogo y/o referencia') || getColumnDisplayValue(record, 'Valor catalogo'))}</td>
+                              {/* Precio */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{formatCurrency(getColumnDisplayValue(record, 'Precio'))}</td>
+                              {/* Calificación */}
+                              <td style={{ verticalAlign: 'middle', fontSize: 15, textAlign: 'center' }}>{getColumnDisplayValue(record, 'Calificacion')}</td>
+                              {/* Acciones */}
+                              <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
                                 <button
                                   className="btn btn-sm btn-primary"
-                                  onClick={() =>
-                                    navigate(`/table/${selectedTable}/record/${record.id}`)
-                                  }
+                                  style={{ borderRadius: 6, fontWeight: 600, fontSize: 15, padding: '6px 18px' }}
+                                  onClick={() => navigate(`/table/${selectedTable}/record/${record.id}`)}
                                 >
                                   Editar
                                 </button>
                               </td>
                             </tr>
-                          ))}
+                          ))
+                        )}
                       </tbody>
                     </table>
-                  )}
-
-                  {/* Sección de actualización masiva */}
-                  {isPrimaryTable && selectedRecords.length > 0 && (
-                    <div className="bulk-update-section mt-3 p-3 bg-light">
-                      <h4>Actualizar campos seleccionados</h4>
-                      {multiSelectFields.map((field) => (
-                        <div key={field} className="form-group">
-                          <label>{field}</label>
-                          <select
-                            className="form-control"
-                            value={bulkUpdateData[field] || ''}
-                            onChange={(e) => handleBulkUpdateChange(field, e.target.value)}
-                          >
-                            <option value="">-- Selecciona una opción --</option>
-                            {fieldOptions[field]?.map((option) => (
-                              <option key={option.value} value={option.value}>
-                                {option.label}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      ))}
-                      <button className="btn btn-primary" onClick={applyBulkUpdate}>
-                        Aplicar cambios
-                      </button>
+                  </div>
+                  {/* Paginador avanzado */}
+                  {totalPages > 1 && (
+                    <div className="d-flex flex-column align-items-center mt-3">
+                      <div className="align-self-start mb-2" style={{ color: '#6c757d' }}>
+                        Mostrando {startRecord} a {endRecord} de {filteredRecords.length} registros
+                      </div>
+                      <nav>
+                        <ul className="pagination mb-0">
+                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}> 
+                            <button className="page-link" onClick={() => setCurrentPage(1)} disabled={currentPage === 1}>&laquo;</button>
+                          </li>
+                          <li className={`page-item ${currentPage === 1 ? 'disabled' : ''}`}> 
+                            <button className="page-link" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1}>&lsaquo;</button>
+                          </li>
+                          {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                            <li key={page} className={`page-item ${page === currentPage ? 'active' : ''}`}>
+                              <button className="page-link" onClick={() => setCurrentPage(page)}>{page}</button>
+                            </li>
+                          ))}
+                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}> 
+                            <button className="page-link" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>&rsaquo;</button>
+                          </li>
+                          <li className={`page-item ${currentPage === totalPages ? 'disabled' : ''}`}> 
+                            <button className="page-link" onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages}>&raquo;</button>
+                          </li>
+                        </ul>
+                      </nav>
                     </div>
                   )}
-
-                  {/* Botón para limpiar filtros */}
-                  <div className="mt-3">
-                    <button className="btn btn-secondary" onClick={clearFilters}>
-                      Limpiar filtros
-                    </button>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
-          {/* Fin de otros contenidos */}
         </div>
       </section>
     </div>

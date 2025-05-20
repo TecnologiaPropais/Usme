@@ -868,6 +868,9 @@ exports.getTableRecords = async (req, res) => {
   const { table_name } = req.params; // Nombre de la tabla
   const filters = req.query; // Filtros pasados en la query string
 
+  // Log de depuración para ver el usuario autenticado
+  console.log('req.user:', req.user);
+
   try {
     // Validar que el nombre de la tabla sea válido
     if (
@@ -927,14 +930,29 @@ exports.getTableRecords = async (req, res) => {
       }
     }
 
+    // === FILTRO DE LOCALIDAD SOLO PARA GESTOR ===
+    const { role, localidad } = req.user || {};
+    console.log('Valor de table_name:', table_name);
+    if (role === 5 && localidad) {
+      if (table_name === 'inscription_caracterizacion') {
+        whereClauses.push(`"${table_name}"."Localidad de la unidad de negocio" = :localidadGestor`);
+        replacements['localidadGestor'] = localidad;
+      }
+      if (table_name === 'empresas') {
+        whereClauses.push(`"${table_name}"."localidad" = :localidadGestor`);
+        replacements['localidadGestor'] = localidad;
+      }
+      // Agrega más condiciones si tienes otras tablas relevantes
+    }
+
     // Construir cláusula WHERE si hay condiciones
     if (whereClauses.length > 0) {
       query += ` WHERE ${whereClauses.join(' AND ')}`;
     }
 
     // Log para depuración de la consulta generada
-    // console.log('Consulta SQL generada:', query);
-    // console.log('Reemplazos:', replacements);
+    console.log('Consulta SQL generada:', query);
+    console.log('Reemplazos:', replacements);
 
     // Ejecutar la consulta
     const [records] = await sequelize.query(query, { replacements });

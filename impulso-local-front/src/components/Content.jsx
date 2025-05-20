@@ -1,4 +1,30 @@
+import { useEffect } from 'react';
+
 export default function Content() {
+  useEffect(() => {
+    // Agregar event listeners pasivos
+    const addPassiveListeners = () => {
+      const options = {
+        passive: true
+      };
+
+      document.addEventListener('touchstart', () => {}, options);
+      document.addEventListener('touchmove', () => {}, options);
+      document.addEventListener('wheel', () => {}, options);
+      document.addEventListener('scroll', () => {}, options);
+    };
+
+    addPassiveListeners();
+
+    // Limpiar event listeners al desmontar
+    return () => {
+      document.removeEventListener('touchstart', () => {});
+      document.removeEventListener('touchmove', () => {});
+      document.removeEventListener('wheel', () => {});
+      document.removeEventListener('scroll', () => {});
+    };
+  }, []);
+
   return (
     <div className="content-wrapper">
       {/* Content Header (Page header) */}
@@ -50,5 +76,5 @@ export default function Content() {
       </section>
       {/* /.content */}
     </div>
-  )
+  );
 }
