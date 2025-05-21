@@ -172,20 +172,9 @@ export default function ProviderTableList() {
         });
         setTables(response.data || []); // Asegurar que `tables` es un array
 
-        // Cargar la tabla seleccionada y las columnas visibles guardadas desde el localStorage
-        const savedTable = localStorage.getItem(LOCAL_STORAGE_TABLE_KEY);
-        const savedVisibleColumns = JSON.parse(localStorage.getItem(LOCAL_STORAGE_COLUMNS_KEY));
-
-        if (savedTable) {
-          setSelectedTable(savedTable);
-
-          const selectedTableObj = response.data.find(
-            (table) => table.table_name === savedTable
-          );
-          setIsPrimaryTable(selectedTableObj?.is_primary || false); // Actualizar estado
-
-          fetchTableData(savedTable, savedVisibleColumns);
-        }
+        // Siempre seleccionar 'provider_proveedores' como tabla principal
+        setSelectedTable('provider_proveedores');
+        fetchTableData('provider_proveedores');
       } catch (error) {
         setError('Error obteniendo las tablas');
       }
@@ -310,9 +299,8 @@ export default function ProviderTableList() {
     setSearch(''); // Limpiar búsqueda
     localStorage.removeItem(LOCAL_STORAGE_COLUMNS_KEY); // Limpiar filtros persistentes
     localStorage.removeItem(LOCAL_STORAGE_SEARCH_KEY); // Limpiar búsqueda persistente
-
-    // Volver a cargar todos los registros de la tabla seleccionada
-    fetchTableData(selectedTable); // Restablecer la tabla completa sin filtros
+    setSelectedTable('provider_proveedores'); // Seleccionar siempre la tabla principal
+    fetchTableData('provider_proveedores'); // Recargar los datos de la tabla principal
   };
 
   // Manejar el cambio en la búsqueda
@@ -573,6 +561,7 @@ export default function ProviderTableList() {
                     </div>
                   )}
                   {/* Botón para limpiar filtros */}
+                  {/*
                   <div className="mt-3">
                     <button
                       className="btn btn-secondary"
@@ -584,6 +573,7 @@ export default function ProviderTableList() {
                       Limpiar filtros
                     </button>
                   </div>
+                  */}
                 </div>
               </div>
             </div>
