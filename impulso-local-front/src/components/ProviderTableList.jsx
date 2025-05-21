@@ -572,6 +572,18 @@ export default function ProviderTableList() {
                       </nav>
                     </div>
                   )}
+                  {/* Botón para limpiar filtros */}
+                  <div className="mt-3">
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => {
+                        setSearch('');
+                        fetchTableData();
+                      }}
+                    >
+                      Limpiar filtros
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
