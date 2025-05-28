@@ -153,4 +153,54 @@ input[type=number] {
 
 .btn.btn-primary.btn-diagnostico {
   font-weight: 400 !important;
+}
+
+/* Estilo moderno para tablas */
+.tabla-moderna {
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+  overflow: hidden;
+}
+.tabla-moderna th, .tabla-moderna td {
+  border: none;
+}
+.tabla-moderna th {
+  background: #fafafa;
+}
+.tabla-moderna tr:not(:last-child) td {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.btn-accion-tabla {
+  width: 80px;
+  min-width: 80px;
+  max-width: 100%;
+  display: block;
+  margin: 0 auto 4px auto;
+  height: 30px;
+  line-height: 1.2;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+/* Barra de progreso moderna para capacitación */
+.progress.moderno {
+  background: #e9ecef;
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(40,167,69,0.10);
+  height: 22px;
+  overflow: hidden;
+}
+.progress-bar.moderno {
+  background: linear-gradient(90deg, #43e97b 0%, #38f9d7 100%);
+  color: #222;
+  font-weight: bold;
+  font-size: 1rem;
+  border-radius: 16px 0 0 16px;
+  box-shadow: 0 2px 8px rgba(40,167,69,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
 } 

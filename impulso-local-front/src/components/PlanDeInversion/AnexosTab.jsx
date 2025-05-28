@@ -15,6 +15,8 @@ export default function AnexosTab({ id }) {
   const [file, setFile] = useState(null);
   const [fileName, setFileName] = useState('');
 
+  const isRole3 = localStorage.getItem('role_id') === '3';
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -236,12 +238,14 @@ export default function AnexosTab({ id }) {
                             Ver archivo
                           </a>
                         </div>
-                        <button
-                          className="btn btn-danger btn-sm"
-                          onClick={() => handleFileDelete(f.id)}
-                        >
-                          Eliminar archivo
-                        </button>
+                        {!isRole3 && (
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleFileDelete(f.id)}
+                          >
+                            Eliminar archivo
+                          </button>
+                        )}
                       </li>
                     );
                   })}
@@ -250,7 +254,7 @@ export default function AnexosTab({ id }) {
                 <p className="mb-2">No hay archivos adjuntos</p>
               )}
 
-              {file ? (
+              {!isRole3 && file ? (
                 <form onSubmit={handleFileUpload}>
                   <div className="form-group mb-2">
                     <label>Nombre del archivo</label>
@@ -273,7 +277,7 @@ export default function AnexosTab({ id }) {
                     Cancelar
                   </button>
                 </form>
-              ) : (
+              ) : !isRole3 && (
                 <div className="mt-2">
                   <input
                     type="file"
@@ -285,12 +289,16 @@ export default function AnexosTab({ id }) {
             </div>
 
             <div className="d-flex justify-content-between mt-4">
-              <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
-                Cancelar
-              </button>
-              <button className="btn btn-primary btn-sm" onClick={handleSave}>
-                Guardar
-              </button>
+              {!isRole3 && (
+                <>
+                  <button className="btn btn-secondary btn-sm" onClick={handleCancel}>
+                    Cancelar
+                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handleSave}>
+                    Guardar
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

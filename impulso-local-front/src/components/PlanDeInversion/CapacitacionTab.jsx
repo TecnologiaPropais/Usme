@@ -174,13 +174,12 @@ export default function CapacitacionTab({ id }) {
         <>
           <div style={{ marginBottom: "1rem" }}>
             <h5>Progreso</h5>
-            <div className="progress" style={{ height: "20px", backgroundColor: "#e9ecef" }}>
+            <div className="progress moderno" style={{ height: "22px", backgroundColor: "#e9ecef" }}>
               <div
-                className="progress-bar"
+                className="progress-bar moderno"
                 role="progressbar"
                 style={{
                   width: `${progress}%`,
-                  backgroundColor: "#28a745",
                 }}
                 aria-valuenow={progress}
                 aria-valuemin="0"
@@ -191,7 +190,7 @@ export default function CapacitacionTab({ id }) {
             </div>
           </div>
 
-          <ul className="list-group mb-3">
+          <ul className="list-group mb-3 tabla-moderna">
             {recommendedCodes.map((code) => {
               const columnName = codeToText[code];
               const value = record[columnName] || false;
@@ -199,8 +198,8 @@ export default function CapacitacionTab({ id }) {
                 <li
                   key={code}
                   className="list-group-item d-flex justify-content-between align-items-center"
-                  style={{ cursor: "pointer" }}
-                  onClick={() => handleToggle(code)}
+                  style={{ cursor: localStorage.getItem('role_id') === '3' ? 'not-allowed' : 'pointer' }}
+                  onClick={localStorage.getItem('role_id') === '3' ? undefined : () => handleToggle(code)}
                 >
                   {columnName}
                   {value ? (

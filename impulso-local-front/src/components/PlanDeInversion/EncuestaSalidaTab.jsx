@@ -351,20 +351,32 @@ export default function EncuestaSalidaTab({ id }) {
     });
   }, []);
 
-  const handleOpenEndedChange = useCallback((component, question, value) => {
-    const key = component + "|" + question;
-    setAppState(prev => ({
-      ...prev,
-      recordsMap: {
-        ...prev.recordsMap,
-        [key]: { 
-          ...prev.recordsMap[key], 
-          respuesta: value || "", 
-          seleccion: false, 
-          record_id: prev.recordsMap[key]?.record_id 
-        }
+  const handleOpenEndedChange = useCallback((component, question, value, optionLabel = null) => {
+    setAppState(prev => {
+      const newMap = { ...prev.recordsMap };
+      let key;
+      if (optionLabel) {
+        // Es una opción abierta dentro de un grupo de opciones
+        key = component + '|' + question + '|' + optionLabel;
+        // Asegurarse de que la opción esté seleccionada
+        newMap[key] = {
+          ...newMap[key],
+          respuesta: value || '',
+          seleccion: true,
+          record_id: newMap[key]?.record_id
+        };
+      } else {
+        // Es una pregunta completamente abierta
+        key = component + '|' + question;
+        newMap[key] = {
+          ...newMap[key],
+          respuesta: value || '',
+          seleccion: false,
+          record_id: newMap[key]?.record_id
+        };
       }
-    }));
+      return { ...prev, recordsMap: newMap };
+    });
   }, []);
 
   const handleSubmit = async () => {
@@ -394,11 +406,15 @@ export default function EncuestaSalidaTab({ id }) {
             if (selectedOpt) {
               const key = section.component + "|" + q.text + "|" + selectedOpt.label;
               const rec = appState.recordsMap[key] || { respuesta: selectedOpt.label, seleccion: true };
+              
+              // Asegurarse de que la respuesta incluya el texto de la opción abierta si existe
+              const respuesta = selectedOpt.openEnded ? rec.respuesta : selectedOpt.label;
+              
               const requestData = {
                 caracterizacion_id: id,
                 componente: section.component,
                 pregunta: q.text,
-                respuesta: rec.respuesta || selectedOpt.label || "",
+                respuesta: respuesta || selectedOpt.label || "",
                 seleccion: true,
                 user_id: userId
               };
@@ -437,8 +453,10 @@ export default function EncuestaSalidaTab({ id }) {
               }
             }
           } else if (q.openEnded) {
+            // Pregunta abierta sin opciones
             const key = section.component + "|" + q.text;
             const rec = appState.recordsMap[key] || { respuesta: "", seleccion: false };
+            // Solo guardar si hay respuesta no vacía
             if (rec.respuesta && rec.respuesta.trim() !== "") {
               const requestData = {
                 caracterizacion_id: id,
@@ -448,7 +466,6 @@ export default function EncuestaSalidaTab({ id }) {
                 seleccion: false,
                 user_id: userId
               };
-
               if (rec.record_id) {
                 updates.push({ id: rec.record_id, data: requestData });
               } else {
@@ -881,6 +898,7 @@ export default function EncuestaSalidaTab({ id }) {
                               name={radioName}
                               checked={!!record.seleccion}
                               onChange={() => handleOptionChange(section.component, q.text, opt.label, true)}
+                              disabled={localStorage.getItem('role_id') === '3'}
                             />
                             <span className="encuesta-modern-option-text">{opt.label}</span>
                             {opt.openEnded && record.seleccion && (
@@ -888,14 +906,26 @@ export default function EncuestaSalidaTab({ id }) {
                                 className="encuesta-modern-open-input"
                                 type="text"
                                 value={record.respuesta || ''}
-                                onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value)}
+                                onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value, opt.label)}
                                 placeholder="Escribe tu respuesta..."
+                                readOnly={localStorage.getItem('role_id') === '3'}
                               />
                             )}
                           </label>
                         );
                       })}
                     </div>
+                  )}
+                  {/* Campo abierto para preguntas sin opciones */}
+                  {!q.options && q.openEnded && (
+                    <input
+                      className="encuesta-modern-open-input"
+                      type="text"
+                      value={appState.recordsMap[section.component + '|' + q.text]?.respuesta || ''}
+                      onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value)}
+                      placeholder="Escribe tu respuesta..."
+                      readOnly={localStorage.getItem('role_id') === '3'}
+                    />
                   )}
                   {/* Campo abierto dependiente de la opción 'No' */}
                   {q.openEndedIfNo && (() => {
@@ -922,7 +952,9 @@ export default function EncuestaSalidaTab({ id }) {
             </div>
           ))}
           <div className="encuesta-modern-bottom-bar">
-            <button className="encuesta-modern-btn encuesta-modern-btn-primary" onClick={handleSubmit}>Guardar</button>
+            {localStorage.getItem('role_id') !== '3' && (
+              <button className="encuesta-modern-btn encuesta-modern-btn-primary" onClick={handleSubmit}>Guardar</button>
+            )}
             <button className="encuesta-modern-btn encuesta-modern-btn-secondary" onClick={handleCancel}>Cancelar</button>
             <button className="encuesta-modern-btn encuesta-modern-btn-pdf" onClick={handleGeneratePDF}>Descargar PDF</button>
           </div>

@@ -257,12 +257,14 @@ export default function ValidacionesTab({ id }) {
               <button
                 className={`btn ${data['Aprobación asesor'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación asesor', true)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Aprobar
               </button>
               <button
                 className={`btn ${data['Aprobación asesor'] === false ? 'btn-danger' : 'btn-outline-danger'}`}
                 onClick={() => handleStatusChange('Aprobación asesor', false)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Rechazar
               </button>
@@ -275,12 +277,14 @@ export default function ValidacionesTab({ id }) {
               <button
                 className={`btn ${data['Aprobación propaís'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación propaís', true)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Aprobar
               </button>
               <button
                 className={`btn ${data['Aprobación propaís'] === false ? 'btn-danger' : 'btn-outline-danger'}`}
                 onClick={() => handleStatusChange('Aprobación propaís', false)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Rechazar
               </button>
@@ -293,12 +297,14 @@ export default function ValidacionesTab({ id }) {
               <button
                 className={`btn ${data['Aprobación comité de compras'] ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => handleStatusChange('Aprobación comité de compras', true)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Aprobar
               </button>
               <button
                 className={`btn ${data['Aprobación comité de compras'] === false ? 'btn-danger' : 'btn-outline-danger'}`}
                 onClick={() => handleStatusChange('Aprobación comité de compras', false)}
+                disabled={localStorage.getItem('role_id') === '3'}
               >
                 Rechazar
               </button>

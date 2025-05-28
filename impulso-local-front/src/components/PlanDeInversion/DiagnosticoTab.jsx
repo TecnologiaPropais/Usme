@@ -413,9 +413,8 @@ export default function DiagnosticoTab({ id }) {
                           type="radio"
                           name={question.text}
                           checked={answers[question.text.trim()] === true}
-                          onChange={() =>
-                            handleAnswerChange(question.text, true)
-                          }
+                          onChange={() => handleAnswerChange(question.text, true)}
+                          disabled={localStorage.getItem('role_id') === '3'}
                         />
                       </td>
                       <td className="td-radio">
@@ -423,9 +422,8 @@ export default function DiagnosticoTab({ id }) {
                           type="radio"
                           name={question.text}
                           checked={answers[question.text.trim()] === false}
-                          onChange={() =>
-                            handleAnswerChange(question.text, false)
-                          }
+                          onChange={() => handleAnswerChange(question.text, false)}
+                          disabled={localStorage.getItem('role_id') === '3'}
                         />
                       </td>
                       <td className="td-puntaje">{getScoreFromState(question)}</td>
@@ -441,9 +439,11 @@ export default function DiagnosticoTab({ id }) {
               ))}
             </tbody>
           </table>
-          <button className="btn btn-primary btn-diagnostico" onClick={handleSubmit}>
-            Guardar
-          </button>
+          {localStorage.getItem('role_id') !== '3' && (
+            <button className="btn btn-primary btn-diagnostico" onClick={handleSubmit}>
+              Guardar
+            </button>
+          )}
 
           {Object.keys(recordIds).length > 0 && (
             <button

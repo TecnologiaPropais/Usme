@@ -618,7 +618,7 @@ export default function FormulacionTab({ id }) {
           </div>
 
           <h5>Resumen de la inversión</h5>
-          <table className="table table-bordered">
+          <table className="table table-bordered tabla-moderna">
             <thead>
               <tr>
                 <th>Rubro</th>

@@ -17,9 +17,10 @@ export default function FormulacionProvTab({ id }) {
   // Estado local para cantidades temporales
   const [localCantidades, setLocalCantidades] = useState({});
 
-  // 1. Obtener role_id y verificar si es '5'
+  // 1. Obtener role_id y verificar si es '5' o '3'
   const roleId = localStorage.getItem('role_id');
   const isRole5 = roleId === '5';
+  const isRole3 = roleId === '3';
 
   const tableName = 'provider_proveedores';
   const rubroTableName = 'provider_rubro';
@@ -353,7 +354,7 @@ export default function FormulacionProvTab({ id }) {
               className="form-control"
               value={selectedRubro}
               onChange={handleRubroChange}
-              disabled={isRole5}
+              disabled={isRole5 || isRole3}
             >
               <option value="">-- Selecciona un rubro --</option>
               {rubros.map((rubro) => (
@@ -371,7 +372,7 @@ export default function FormulacionProvTab({ id }) {
               className="form-control"
               value={selectedElemento}
               onChange={handleElementoChange}
-              disabled={!selectedRubro || isRole5}
+              disabled={!selectedRubro || isRole5 || isRole3}
             >
               <option value="">-- Selecciona un elemento --</option>
               {elementos.map((elemento) => (
@@ -391,11 +392,11 @@ export default function FormulacionProvTab({ id }) {
               placeholder="Buscar..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={!selectedRubro || isRole5}
+              disabled={!selectedRubro || isRole5 || isRole3}
             />
           </div>
 
-          <table className="table mt-3">
+          <table className="table tabla-moderna mt-3">
             <thead>
               <tr>
                 {fields.map((field) => (
@@ -446,6 +447,8 @@ export default function FormulacionProvTab({ id }) {
                           }}
                           style={{ width: '60px', MozAppearance: 'textfield' }}
                           className="no-spinner"
+                          readOnly={isRole3}
+                          disabled={isRole3}
                         />
                       </td>
                       <td>
@@ -459,6 +462,7 @@ export default function FormulacionProvTab({ id }) {
                               e.target.checked
                             )
                           }
+                          disabled={isRole3}
                         />
                       </td>
                       <td>
@@ -472,6 +476,7 @@ export default function FormulacionProvTab({ id }) {
                               e.target.checked
                             )
                           }
+                          disabled={isRole3}
                         />
                       </td>
                       <td>
@@ -485,6 +490,7 @@ export default function FormulacionProvTab({ id }) {
                               e.target.checked
                             )
                           }
+                          disabled={isRole3}
                         />
                       </td>
                     </tr>
@@ -503,7 +509,7 @@ export default function FormulacionProvTab({ id }) {
           <div className="mt-4">
             <h5>Productos Seleccionados</h5>
             {selectedRecords.length > 0 ? (
-              <table className="table">
+              <table className="table tabla-moderna">
                 <thead>
                   <tr>
                     <th>Nombre proveedor</th>
@@ -551,7 +557,7 @@ export default function FormulacionProvTab({ id }) {
           <div className="mt-4">
             <h5>Resumen de la Inversión</h5>
             {groupedRubros.length > 0 ? (
-              <table className="table">
+              <table className="table tabla-moderna">
                 <thead>
                   <tr>
                     <th>Rubro</th>
@@ -585,16 +591,4 @@ export default function FormulacionProvTab({ id }) {
 
 FormulacionProvTab.propTypes = {
   id: PropTypes.string.isRequired,
-};
-
-/* Al final del archivo, agrega el siguiente CSS global para quitar los spinners en todos los navegadores */
-/*
-.no-spinner::-webkit-outer-spin-button,
-.no-spinner::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.no-spinner {
-  -moz-appearance: textfield;
-}
-*/ 
+}; 

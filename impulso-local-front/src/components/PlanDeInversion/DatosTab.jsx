@@ -175,14 +175,17 @@ export default function DatosTab({ id }) {
                       minHeight: '40px',
                       resize: 'both'
                     }}
+                    readOnly={role === '3'}
                   />
                 </div>
               ))}
             {/* Contenedor flex para los botones */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: 20 }}>
-                {recordId ? 'Actualizar' : 'Guardar'}
-              </button>
+              {role !== '3' && (
+                <button type="submit" className="btn btn-primary" style={{ marginTop: 20 }}>
+                  {recordId ? 'Actualizar' : 'Guardar'}
+                </button>
+              )}
               {recordId && role !== '3' && (
                 <button
                   type="button"

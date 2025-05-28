@@ -17,6 +17,8 @@ export default function PropuestaMejoraTab({ id }) {
   const [historyError, setHistoryError] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  const [editRecordId, setEditRecordId] = useState(null);
+
   useEffect(() => {
     const fetchFieldsAndRecords = async () => {
       setLoading(true);
@@ -52,6 +54,11 @@ export default function PropuestaMejoraTab({ id }) {
     setData({ ...data, [e.target.name]: e.target.value });
   };
 
+  const handleEdit = (record) => {
+    setData({ ...record });
+    setEditRecordId(record.id);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -62,17 +69,26 @@ export default function PropuestaMejoraTab({ id }) {
       const userId = localStorage.getItem('id');
       recordData.user_id = userId;
 
-      // Crear un nuevo registro
-      await axios.post(
-        `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
-        recordData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      alert('Datos guardados exitosamente');
+      if (editRecordId) {
+        // Editar registro existente
+        await axios.put(
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record/${editRecordId}`,
+          recordData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        alert('Registro editado exitosamente');
+        setEditRecordId(null);
+      } else {
+        // Crear un nuevo registro
+        await axios.post(
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
+          recordData,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        alert('Datos guardados exitosamente');
+      }
       setData({ caracterizacion_id: id });
-
-      // Actualizar los registros después de agregar un nuevo registro
+      // Actualizar los registros después de agregar o editar un registro
       const updatedRecords = await axios.get(
         `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -180,13 +196,16 @@ export default function PropuestaMejoraTab({ id }) {
                       minHeight: '40px',
                       resize: 'both'
                     }}
+                    readOnly={localStorage.getItem('role_id') === '3'}
                   />
                 </div>
               ))}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-              <button type="submit" className="btn btn-primary" style={{ marginTop: 0 }}>
-                Guardar
-              </button>
+              {localStorage.getItem('role_id') !== '3' && (
+                <button type="submit" className="btn btn-primary" style={{ marginTop: 0 }}>
+                  Guardar
+                </button>
+              )}
               {records.length > 0 && (
                 <button
                   type="button"
@@ -200,29 +219,35 @@ export default function PropuestaMejoraTab({ id }) {
           </form>
 
           <h4 className="mt-4">Registros guardados</h4>
-          <table className="table">
+          <table className="table tabla-moderna">
             <thead>
               <tr>
-                {fields.map((field) => (
+                {fields.filter(field => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id').map((field) => (
                   <th key={field.column_name}>{field.column_name}</th>
                 ))}
-                <th>Acciones</th>
+                <th style={{ textAlign: 'center' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
               {records.map((record) => (
                 <tr key={record.id}>
-                  {fields.map((field) => (
+                  {fields.filter(field => field.column_name !== 'id' && field.column_name !== 'caracterizacion_id').map((field) => (
                     <td key={field.column_name}>{record[field.column_name]}</td>
                   ))}
-                  <td>
+                  <td style={{ textAlign: 'center' }}>
                     <button
-                      className="btn btn-danger btn-sm mr-2"
+                      className="btn btn-secondary btn-sm mb-1 btn-accion-tabla"
+                      onClick={() => handleEdit(record)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="btn btn-danger btn-sm btn-accion-tabla"
                       onClick={() => handleDelete(record.id)}
+                      disabled={localStorage.getItem('role_id') === '3'}
                     >
                       Eliminar
                     </button>
-                    {/* Ya no mostramos boton historial por registro */}
                   </td>
                 </tr>
               ))}

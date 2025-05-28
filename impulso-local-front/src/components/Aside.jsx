@@ -112,8 +112,8 @@ export default function Aside() {
                 </li>
               )}
 
-              {/* Listado Final: visible para roles 1 y 2 */}
-              {(role === 1 || role === 2 || role === 4 || role === 5) && (
+              {/* Listado Final: visible para roles 1, 2, 3, 4 y 5 */}
+              {(role === 1 || role === 2 || role === 3 || role === 4 || role === 5) && (
                 <li className="nav-item">
                   <Link to="/pi-tables" className="nav-link">
                     <i className="nav-icon fas fa-chart-line" />
