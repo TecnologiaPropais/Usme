@@ -464,8 +464,13 @@ export default function PublicRecordCreate() {
       if (fileList.length > 0) {
         const uploadPromises = fileList.map((fileItem) => {
           const formData = new FormData();
+          // Lógica para nombre con extensión y sufijo único
+          const extension = fileItem.file.name.split('.').pop();
+          const baseName = fileItem.name || fileItem.file.name.replace(/\.[^/.]+$/, "");
+          const uniqueSuffix = Date.now();
+          const fileNameWithExtension = `${baseName}_${uniqueSuffix}.${extension}`;
           formData.append('file', fileItem.file);
-          formData.append('fileName', fileItem.name || fileItem.file.name);
+          formData.append('fileName', fileNameWithExtension);
           formData.append('fileType', fileItem.type);
 
           return axios.post(
@@ -703,37 +708,45 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
                 />
               </div>
 
-              {fileList.map((fileItem, index) => (
-                <div className="form-group" key={index}>
-                  <label>Archivo: {fileItem.file.name}</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={fileItem.name}
-                    onChange={(e) => handleFileNameChange(e, index)}
-                    placeholder="Ingresa un nombre para el archivo"
-                  />
-                  <select
-                    className="form-control mt-2"
-                    value={fileItem.type}
-                    onChange={(e) => handleFileTypeChange(e, index)}
-                  >
-                    <option value="">-- Selecciona el tipo de archivo --</option>
-                    {fileTypeOptions.map((typeOption, idx) => (
-                      <option key={idx} value={typeOption}>
-                        {typeOption}
-                      </option>
-                    ))}
-                  </select>
-                  <button
-                    type="button"
-                    className="btn btn-danger mt-2"
-                    onClick={() => handleRemoveFile(index)}
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              ))}
+              {fileList.map((fileItem, index) => {
+                // Mostrar el nombre del archivo sin el sufijo numérico
+                let displayName = fileItem.name || fileItem.file.name;
+                const match = displayName.match(/^(.*)_\d{10,}(\.[^.]+)$/);
+                if (match) {
+                  displayName = match[1] + match[2];
+                }
+                return (
+                  <div className="form-group" key={index}>
+                    <label>Archivo: {displayName}</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={fileItem.name}
+                      onChange={(e) => handleFileNameChange(e, index)}
+                      placeholder="Ingresa un nombre para el archivo"
+                    />
+                    <select
+                      className="form-control mt-2"
+                      value={fileItem.type}
+                      onChange={(e) => handleFileTypeChange(e, index)}
+                    >
+                      <option value="">-- Selecciona el tipo de archivo --</option>
+                      {fileTypeOptions.map((typeOption, idx) => (
+                        <option key={idx} value={typeOption}>
+                          {typeOption}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="btn btn-danger mt-2"
+                      onClick={() => handleRemoveFile(index)}
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                );
+              })}
 
               <button type="submit" className="btn btn-primary">
                 Guardar Registro y Subir Archivos

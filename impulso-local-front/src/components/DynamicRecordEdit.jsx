@@ -336,9 +336,13 @@ export default function DynamicRecordEdit() {
     try {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id'); // Obtenemos el id del usuario desde localStorage
+      const fileNameWithoutPrefix = fileName.startsWith('anexos_') ? fileName.replace('anexos_', '') : fileName;
+      const uniqueSuffix = Date.now();
+      const extension = file.name.split('.').pop();
+      const fileNameWithExtension = `${fileNameWithoutPrefix}_${uniqueSuffix}.${extension}`;
       const formData = new FormData();
       formData.append('file', file);
-      formData.append('fileName', fileName);
+      formData.append('fileName', fileNameWithExtension);
       formData.append('user_id', userId); // Enviar el user_id al backend
 
       await axios.post(
@@ -898,73 +902,80 @@ export default function DynamicRecordEdit() {
 
                     {uploadedFiles.length > 0 && (
                       <ul className="list-group mt-3">
-                        {uploadedFiles.map((file) => (
-                          <li
-                            key={file.id}
-                            className="list-group-item d-flex justify-content-between align-items-center"
-                          >
-                            <div>
-                              <strong>{file.name}</strong>
-                              <br />
-                              <a
-                                href={file.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                Ver archivo
-                              </a>
-                              <br />
-                              <span
-                                className="badge"
-                                style={{
-                                  backgroundColor:
-                                    file.cumple === true ||
-                                    file.cumple === 'true' ||
-                                    file.cumple === 1
-                                      ? 'green'
-                                      : file.cumple === false ||
-                                        file.cumple === 'false' ||
-                                        file.cumple === 0
-                                      ? 'red'
-                                      : 'gray',
-                                  color: '#fff',
-                                  padding: '5px',
-                                  borderRadius: '5px',
-                                  cursor: 'pointer',
-                                  marginTop: '5px',
-                                  display: 'inline-block',
-                                }}
-                                onClick={() =>
-                                  role !== '3' && handleOpenComplianceModal(file)
-                                }
-                              >
-                                {file.cumple === true ||
-                                file.cumple === 'true' ||
-                                file.cumple === 1
-                                  ? 'Cumple'
-                                  : file.cumple === false ||
-                                    file.cumple === 'false' ||
-                                    file.cumple === 0
-                                  ? 'No Cumple'
-                                  : 'Cumplimiento'}
-                              </span>
-                              {file['descripcion cumplimiento'] && (
-                                <p style={{ marginTop: '5px' }}>
-                                  <strong>Descripción:</strong>{' '}
-                                  {file['descripcion cumplimiento']}
-                                </p>
+                        {uploadedFiles.map((file) => {
+                          let displayName = file.name;
+                          const match = displayName.match(/^(.*)_\d{10,}(\.[^.]+)$/);
+                          if (match) {
+                            displayName = match[1] + match[2];
+                          }
+                          return (
+                            <li
+                              key={file.id}
+                              className="list-group-item d-flex justify-content-between align-items-center"
+                            >
+                              <div>
+                                <strong>{displayName}</strong>
+                                <br />
+                                <a
+                                  href={file.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                >
+                                  Ver archivo
+                                </a>
+                                <br />
+                                <span
+                                  className="badge"
+                                  style={{
+                                    backgroundColor:
+                                      file.cumple === true ||
+                                      file.cumple === 'true' ||
+                                      file.cumple === 1
+                                        ? 'green'
+                                        : file.cumple === false ||
+                                          file.cumple === 'false' ||
+                                          file.cumple === 0
+                                        ? 'red'
+                                        : 'gray',
+                                    color: '#fff',
+                                    padding: '5px',
+                                    borderRadius: '5px',
+                                    cursor: 'pointer',
+                                    marginTop: '5px',
+                                    display: 'inline-block',
+                                  }}
+                                  onClick={() =>
+                                    role !== '3' && handleOpenComplianceModal(file)
+                                  }
+                                >
+                                  {file.cumple === true ||
+                                  file.cumple === 'true' ||
+                                  file.cumple === 1
+                                    ? 'Cumple'
+                                    : file.cumple === false ||
+                                      file.cumple === 'false' ||
+                                      file.cumple === 0
+                                    ? 'No Cumple'
+                                    : 'Cumplimiento'}
+                                </span>
+                                {file['descripcion cumplimiento'] && (
+                                  <p style={{ marginTop: '5px' }}>
+                                    <strong>Descripción:</strong>{' '}
+                                    {file['descripcion cumplimiento']}
+                                  </p>
+                                )}
+                              </div>
+                              {role !== '3' && (
+                                <button
+                                  className="btn btn-danger btn-sm"
+                                  onClick={() => handleFileDelete(file.id)}
+                                >
+                                  Eliminar
+                                </button>
                               )}
-                            </div>
-                            {role !== '3' && (
-                              <button
-                                className="btn btn-danger btn-sm"
-                                onClick={() => handleFileDelete(file.id)}
-                              >
-                                Eliminar
-                              </button>
-                            )}
-                          </li>
-                        ))}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>
