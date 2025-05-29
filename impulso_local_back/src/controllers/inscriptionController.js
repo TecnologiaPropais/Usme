@@ -2171,43 +2171,94 @@ exports.createTableRecord = async (req, res) => {
     }
 
     // ──────────────────────────────────────────────────────────────
-    // NUEVO CASO: pi_encuesta_salida SIEMPRE INSERTA
+    // NUEVO CASO: pi_encuesta_salida - ACTUALIZAR O INSERTAR
     // ──────────────────────────────────────────────────────────────
     else if (table_name === 'pi_encuesta_salida') {
-      // Siempre crear un nuevo registro para cada respuesta
-      const insertFields = Object.keys(filteredData).map((f) => `"${f}"`).join(', ');
-      const insertValues = Object.keys(filteredData).map((_, i) => `$${i + 1}`).join(', ');
-
-      const insertQuery = `
-        INSERT INTO "${table_name}" (${insertFields})
-        VALUES (${insertValues})
-        RETURNING *
+      // Buscar si existe un registro con el mismo caracterizacion_id, componente y pregunta
+      const findQuery = `
+        SELECT id FROM "${table_name}"
+        WHERE caracterizacion_id = $1
+        AND componente = $2
+        AND pregunta = $3
       `;
 
-      const [newRecord] = await sequelize.query(insertQuery, {
-        bind: Object.values(filteredData),
-        type: sequelize.QueryTypes.INSERT
+      const [existingRecord] = await sequelize.query(findQuery, {
+        bind: [filteredData.caracterizacion_id, filteredData.componente, filteredData.pregunta],
+        type: sequelize.QueryTypes.SELECT
       });
-      const createdRecord = newRecord[0];
 
-      // Registrar en historial: cada campo creado con oldValue = null
-      for (const key of Object.keys(filteredData)) {
-        await insertHistory(
-          table_name,
-          createdRecord.id,
-          userId,
-          'create',
-          key,
-          null,
-          createdRecord[key],
-          `Campo ${key} creado`
-        );
+      if (existingRecord) {
+        // Actualizar registro existente
+        const updateFields = Object.keys(filteredData)
+          .map((f, i) => `"${f}" = $${i + 1}`)
+          .join(', ');
+
+        const updateQuery = `
+          UPDATE "${table_name}"
+          SET ${updateFields}
+          WHERE id = $${Object.keys(filteredData).length + 1}
+          RETURNING *
+        `;
+
+        const [updatedRecord] = await sequelize.query(updateQuery, {
+          bind: [...Object.values(filteredData), existingRecord.id],
+          type: sequelize.QueryTypes.UPDATE
+        });
+
+        // Registrar en historial: cada campo actualizado
+        for (const key of Object.keys(filteredData)) {
+          await insertHistory(
+            table_name,
+            existingRecord.id,
+            userId,
+            'update',
+            key,
+            null, // No tenemos el valor anterior
+            filteredData[key],
+            `Campo ${key} actualizado`
+          );
+        }
+
+        return res.status(200).json({
+          message: `Registro actualizado con éxito (${table_name})`,
+          record: updatedRecord[0],
+        });
+      } else {
+        // Crear nuevo registro si no existe
+        const insertFields = Object.keys(filteredData).map((f) => `"${f}"`).join(', ');
+        const insertValues = Object.keys(filteredData).map((_, i) => `$${i + 1}`).join(', ');
+
+        const insertQuery = `
+          INSERT INTO "${table_name}" (${insertFields})
+          VALUES (${insertValues})
+          RETURNING *
+        `;
+
+        const [newRecord] = await sequelize.query(insertQuery, {
+          bind: Object.values(filteredData),
+          type: sequelize.QueryTypes.INSERT
+        });
+        const createdRecord = newRecord[0];
+
+        // Registrar en historial: cada campo creado
+        for (const key of Object.keys(filteredData)) {
+          await insertHistory(
+            table_name,
+            createdRecord.id,
+            userId,
+            'create',
+            key,
+            null,
+            createdRecord[key],
+            `Campo ${key} creado`
+          );
+        }
+
+        return res.status(201).json({
+          message: `Registro creado con éxito (${table_name})`,
+          record: createdRecord,
+        });
       }
-
-      return res.status(201).json({
-        message: `Registro creado con éxito (${table_name})`,
-        record: createdRecord,
-      });
     }
 
     // ──────────────────────────────────────────────────────────────

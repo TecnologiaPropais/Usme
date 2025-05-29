@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
+import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
 import Aside from './components/Aside';
 import Content from './components/Content';
@@ -34,6 +35,7 @@ PrivateRoute.propTypes = {
 export default function App() {
   return (
     <Router>
+      <Toaster position="top-right" />
       <Routes>
         {/* Rutas públicas */}
         <Route path="/login" element={<Login />} />

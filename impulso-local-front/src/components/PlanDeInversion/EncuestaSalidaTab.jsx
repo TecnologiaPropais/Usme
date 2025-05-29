@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import config from '../../config';
 import './EncuestaSalidaTab.modern.css';
+import { toast } from "react-hot-toast";
 
 export default function EncuestaSalidaTab({ id }) {
   const initialQuestions = [
@@ -32,7 +33,7 @@ export default function EncuestaSalidaTab({ id }) {
           text: "El proceso de ingreso a la plataforma para el proceso de inscripción fue:",
           options: [
             { label: "Fácil" },
-            { label: "Difícil ¿Por qué?", openEnded: true }
+            { label: "Difícil" }
           ]
         },
         {
@@ -225,17 +226,13 @@ export default function EncuestaSalidaTab({ id }) {
     }
   ];
 
-  // Consolidar estados relacionados
   const [appState, setAppState] = useState({
     loading: true,
     error: null,
-    recordsMap: {},
-    caracterizacionData: {},
-    tipoIdentificaciones: [],
-    asesorData: {
-      nombre: "No asignado",
-      documento: "No disponible"
-    }
+    records: [],
+    caracterizacionData: null,
+    identificationTypes: [],
+    isInitialLoad: true
   });
 
   const [history, setHistory] = useState({
@@ -245,300 +242,231 @@ export default function EncuestaSalidaTab({ id }) {
     showModal: false
   });
 
-  // Memoizar la función de fetch para evitar recreaciones innecesarias
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      setAppState(prev => ({ ...prev, error: "No se encontró el token de autenticación", loading: false }));
-      return;
-    }
-
+    if (!appState.isInitialLoad) return;
+    
     try {
-      // Realizar todas las llamadas API en paralelo
-      const [recordsResponse, tipoIdResponse, carResponse] = await Promise.all([
-        axios.get(
-          `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/records?caracterizacion_id=${id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        axios.get(
-          `${config.urls.inscriptions.tables}/inscription_caracterizacion/field-options/Tipo de identificacion`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        ),
-        axios.get(
-          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
-      ]);
-
-      // Procesar registros de la encuesta
-      const newMap = {};
-      recordsResponse.data.forEach((rec) => {
-        const comp = rec.componente ? rec.componente.trim() : "";
-        const preg = rec.pregunta ? rec.pregunta.trim() : "";
-        const resp = rec.respuesta ? rec.respuesta.trim() : "";
-        const key = rec.seleccion === false && resp && !initialQuestions
-          .find(s => s.component === comp)?.questions
-          .find(qq => qq.text === preg)?.options 
-          ? comp + "|" + preg
-          : (resp ? comp + "|" + preg + "|" + resp : comp + "|" + preg);
-
-        newMap[key] = {
-          respuesta: resp,
-          seleccion: rec.seleccion,
-          record_id: rec.id
-        };
-      });
-
-      // Obtener datos del asesor si existe
-      let asesorData = { nombre: "No asignado", documento: "No disponible" };
-      const asesorId = carResponse.data.record?.Asesor;
-      if (asesorId) {
-        try {
-          const asesorResponse = await axios.get(
-            `${config.urls.inscriptions.tables}/users/record/${asesorId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const asesor = asesorResponse.data.record;
-          asesorData = {
-            nombre: asesor.username || "No asignado",
-            documento: asesor.documento || "No disponible"
-          };
-        } catch (err) {
-          console.error("Error obteniendo datos del asesor:", err);
-        }
+      setAppState(prev => ({ ...prev, loading: true, error: null }));
+      
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No se encontró el token de autenticación');
       }
 
-      // Actualizar estado con todos los datos
-      setAppState({
-        loading: false,
-        error: null,
-        recordsMap: newMap,
-        caracterizacionData: carResponse.data.record || {},
-        tipoIdentificaciones: tipoIdResponse.data || [],
-        asesorData
-      });
-    } catch (error) {
-      console.error("Error obteniendo datos:", error);
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
+
+      // Realizar todas las consultas en paralelo
+      const [recordsResponse, identificationTypesResponse, caracterizacionResponse] = await Promise.all([
+        axios.get(`${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/records?caracterizacion_id=${id}`, { headers }),
+        axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/field-options/Tipo de identificacion`, { headers }),
+        axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers })
+      ]);
+
+      // Procesar los registros
+      const processedRecords = recordsResponse.data.reduce((acc, record) => {
+        let key;
+        if (record.respuesta && record.seleccion) {
+          // Es una opción seleccionada
+          key = `${record.componente}|${record.pregunta}|${record.respuesta}`;
+        } else if (record.respuesta) {
+          // Es una respuesta abierta
+          key = `${record.componente}|${record.pregunta}`;
+        }
+        
+        if (key) {
+          acc[key] = {
+            ...record,
+            componente: record.componente.trim(),
+            pregunta: record.pregunta.trim(),
+            respuesta: record.respuesta || '',
+            seleccion: record.seleccion || false
+          };
+        }
+        return acc;
+      }, {});
+
+      console.log('Registros cargados:', processedRecords);
+
       setAppState(prev => ({
         ...prev,
         loading: false,
-        error: "Error obteniendo los datos de la encuesta."
+        records: processedRecords,
+        identificationTypes: identificationTypesResponse.data,
+        caracterizacionData: caracterizacionResponse.data,
+        isInitialLoad: false
+      }));
+
+    } catch (error) {
+      console.error('Error al cargar los datos:', error);
+      setAppState(prev => ({
+        ...prev,
+        loading: false,
+        error: error.message || 'Error al cargar los datos'
       }));
     }
-  }, [id]);
+  }, [id, appState.isInitialLoad]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
-  // Memoizar handlers para evitar recreaciones innecesarias
-  const handleOptionChange = useCallback((component, question, optionLabel, value) => {
+  const handleOptionChange = useCallback((componente, pregunta, opcion) => {
     setAppState(prev => {
-      const newMap = { ...prev.recordsMap };
-      Object.keys(newMap).forEach((k) => {
-        if (k.startsWith(component + "|" + question + "|")) {
-          newMap[k] = { ...newMap[k], seleccion: false };
+      const key = `${componente}|${pregunta}|${opcion.label}`;
+      const existingRecord = prev.records[key];
+      
+      const updatedRecords = {
+        ...prev.records,
+        [key]: {
+          ...existingRecord,
+          componente,
+          pregunta,
+          respuesta: opcion.label,
+          seleccion: true,
+          caracterizacion_id: id
         }
-      });
-      const key = component + "|" + question + "|" + optionLabel;
-      newMap[key] = { 
-        ...newMap[key], 
-        respuesta: optionLabel, 
-        seleccion: value, 
-        record_id: prev.recordsMap[key]?.record_id 
       };
-      return { ...prev, recordsMap: newMap };
-    });
-  }, []);
 
-  const handleOpenEndedChange = useCallback((component, question, value, optionLabel = null) => {
+      return {
+        ...prev,
+        records: updatedRecords
+      };
+    });
+  }, [id]);
+
+  const handleOpenResponseChange = useCallback((componente, pregunta, value, optionLabel = null) => {
     setAppState(prev => {
-      const newMap = { ...prev.recordsMap };
       let key;
       if (optionLabel) {
         // Es una opción abierta dentro de un grupo de opciones
-        key = component + '|' + question + '|' + optionLabel;
-        // Asegurarse de que la opción esté seleccionada
-        newMap[key] = {
-          ...newMap[key],
-          respuesta: value || '',
-          seleccion: true,
-          record_id: newMap[key]?.record_id
-        };
+        key = `${componente}|${pregunta}|${optionLabel}`;
       } else {
         // Es una pregunta completamente abierta
-        key = component + '|' + question;
-        newMap[key] = {
-          ...newMap[key],
-          respuesta: value || '',
-          seleccion: false,
-          record_id: newMap[key]?.record_id
-        };
+        key = `${componente}|${pregunta}`;
       }
-      return { ...prev, recordsMap: newMap };
+      
+      const existingRecord = prev.records[key];
+      
+      const updatedRecords = {
+        ...prev.records,
+        [key]: {
+          ...existingRecord,
+          componente,
+          pregunta,
+          respuesta: value,
+          seleccion: optionLabel ? true : false,
+          caracterizacion_id: id
+        }
+      };
+
+      return {
+        ...prev,
+        records: updatedRecords
+      };
     });
-  }, []);
+  }, [id]);
 
   const handleSubmit = async () => {
     try {
-      const token = localStorage.getItem("token");
+      setAppState(prev => ({ ...prev, loading: true, error: null }));
+      
+      const token = localStorage.getItem('token');
       if (!token) {
-        alert("No se encontró el token de autenticación");
-        return;
+        throw new Error('No se encontró el token de autenticación');
       }
 
-      const userId = localStorage.getItem('id');
-      const batchRequests = [];
-      const updates = [];
-      const creates = [];
+      const headers = {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      };
 
-      // Preparar todas las solicitudes primero
-      for (const section of initialQuestions) {
-        for (const q of section.questions) {
-          if (q.options && q.options.length > 0) {
-            // Buscar la opción seleccionada
-            const selectedOpt = q.options.find(opt => {
-              const key = section.component + "|" + q.text + "|" + opt.label;
-              const rec = appState.recordsMap[key] || {};
-              return rec.seleccion === true;
-            });
-
-            if (selectedOpt) {
-              const key = section.component + "|" + q.text + "|" + selectedOpt.label;
-              const rec = appState.recordsMap[key] || { respuesta: selectedOpt.label, seleccion: true };
-              
-              // Asegurarse de que la respuesta incluya el texto de la opción abierta si existe
-              const respuesta = selectedOpt.openEnded ? rec.respuesta : selectedOpt.label;
-              
-              const requestData = {
-                caracterizacion_id: id,
-                componente: section.component,
-                pregunta: q.text,
-                respuesta: respuesta || selectedOpt.label || "",
-                seleccion: true,
-                user_id: userId
-              };
-
-              if (rec.record_id) {
-                updates.push({ id: rec.record_id, data: requestData });
-              } else {
-                creates.push(requestData);
-              }
-            }
-
-            // Manejar campo abierto si aplica (openEndedIfNo)
-            if (q.openEndedIfNo) {
-              const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
-              if (noOption) {
-                const noKey = section.component + "|" + q.text + "|" + noOption.label;
-                const noRec = appState.recordsMap[noKey] || {};
-                if (noRec.seleccion) {
-                  const openKey = section.component + "|" + q.text + "|RazónNo";
-                  const openRec = appState.recordsMap[openKey] || {};
-                  const requestData = {
-                    caracterizacion_id: id,
-                    componente: section.component,
-                    pregunta: q.text + " - RazónNo",
-                    respuesta: openRec.respuesta || "",
-                    seleccion: false,
-                    user_id: userId
-                  };
-
-                  if (openRec.record_id) {
-                    updates.push({ id: openRec.record_id, data: requestData });
-                  } else {
-                    creates.push(requestData);
-                  }
-                }
-              }
-            }
-          } else if (q.openEnded) {
-            // Pregunta abierta sin opciones
-            const key = section.component + "|" + q.text;
-            const rec = appState.recordsMap[key] || { respuesta: "", seleccion: false };
-            // Solo guardar si hay respuesta no vacía
-            if (rec.respuesta && rec.respuesta.trim() !== "") {
-              const requestData = {
-                caracterizacion_id: id,
-                componente: section.component,
-                pregunta: q.text,
-                respuesta: rec.respuesta,
-                seleccion: false,
-                user_id: userId
-              };
-              if (rec.record_id) {
-                updates.push({ id: rec.record_id, data: requestData });
-              } else {
-                creates.push(requestData);
-              }
-            }
-          }
-        }
-      }
-
-      // Procesar actualizaciones en lotes
-      if (updates.length > 0) {
-        const updatePromises = updates.map(update => 
-          axios.put(
-            `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record/${update.id}`,
-            update.data,
-            { headers: { Authorization: `Bearer ${token}` } }
-          ).catch(error => {
-            if (error.response && error.response.status === 404) {
-              // Si el registro no existe, crear uno nuevo
-              return axios.post(
-                `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
-                update.data,
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-            }
-            throw error;
-          })
-        );
-        batchRequests.push(...updatePromises);
-      }
-
-      // Procesar creaciones en lotes
-      if (creates.length > 0) {
-        const createPromises = creates.map(data =>
-          axios.post(
-            `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
-            data,
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-        );
-        batchRequests.push(...createPromises);
-      }
-
-      // Ejecutar todas las solicitudes en paralelo
-      const results = await Promise.all(batchRequests);
-
-      // Actualizar el estado con los nuevos IDs
-      const newRecordsMap = { ...appState.recordsMap };
-      results.forEach((result, index) => {
-        const request = [...updates, ...creates][index];
-        const key = Object.keys(newRecordsMap).find(k => 
-          newRecordsMap[k].respuesta === request.data.respuesta &&
-          newRecordsMap[k].seleccion === request.data.seleccion
-        );
-        if (key) {
-          newRecordsMap[key] = {
-            ...newRecordsMap[key],
-            record_id: result.data.id
+      // Preparar los registros en el formato correcto
+      const recordsToSubmit = Object.entries(appState.records)
+        .filter(([_, record]) => record.respuesta || record.seleccion) // Solo enviar registros con datos
+        .map(([key, record]) => {
+          // Extraer el componente y la pregunta de la clave
+          const [componente, pregunta] = key.split('|');
+          return {
+            caracterizacion_id: parseInt(id),
+            componente: componente.trim(),
+            pregunta: pregunta.trim(),
+            respuesta: record.respuesta || '',
+            seleccion: record.seleccion || false,
+            user_id: parseInt(localStorage.getItem('id'))
           };
-        }
-      });
+        });
 
+      console.log('Registros a enviar:', recordsToSubmit);
+
+      // Enviar cada registro individualmente
+      const savePromises = recordsToSubmit.map(record => 
+        axios.post(
+          `${config.urls.inscriptions.pi}/tables/pi_encuesta_salida/record`,
+          record,
+          { headers }
+        ).catch(error => {
+          console.error('Error al guardar registro:', record, error.response?.data || error.message);
+          throw error;
+        })
+      );
+
+      const responses = await Promise.all(savePromises);
+      
+      // Verificar si todas las respuestas fueron exitosas
+      const allSuccessful = responses.every(response => response.data && response.data.record);
+      
+      if (allSuccessful) {
+        // Actualizar el estado con los nuevos registros
+        const newRecords = responses.reduce((acc, response) => {
+          const record = response.data.record;
+          const key = record.respuesta 
+            ? `${record.componente}|${record.pregunta}|${record.respuesta}`
+            : `${record.componente}|${record.pregunta}`;
+          acc[key] = record;
+          return acc;
+        }, {});
+
+        setAppState(prev => ({
+          ...prev,
+          loading: false,
+          records: newRecords,
+          isInitialLoad: true // Marcar para recargar los datos
+        }));
+        toast.success('Datos guardados correctamente');
+        
+        // Recargar los datos después de guardar
+        await fetchData();
+      } else {
+        const failedResponses = responses.filter(response => !response.data || !response.data.record);
+        console.error('Respuestas fallidas:', failedResponses);
+        throw new Error(`Error al guardar ${failedResponses.length} registros`);
+      }
+    } catch (error) {
+      console.error('Error al guardar los datos:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Error al guardar los datos';
       setAppState(prev => ({
         ...prev,
-        recordsMap: newRecordsMap
+        loading: false,
+        error: errorMessage
       }));
-
-      alert("Encuesta guardada exitosamente");
-    } catch (error) {
-      console.error("Error guardando la encuesta:", error);
-      alert("Error al guardar la encuesta. Por favor, intente nuevamente.");
+      toast.error(errorMessage);
     }
+  };
+
+  const handleSave = async () => {
+    await handleSubmit();
+  };
+
+  const handleCancel = () => {
+    setAppState(prev => ({
+      ...prev,
+      records: {},
+      isInitialLoad: true
+    }));
+    fetchData();
   };
 
   const handleOpenHistoryModal = async () => {
@@ -547,7 +475,7 @@ export default function EncuestaSalidaTab({ id }) {
   };
 
   const fetchAllRecordsHistory = async () => {
-    const recordIds = Object.values(appState.recordsMap).map(r => r.record_id).filter(Boolean);
+    const recordIds = Object.values(appState.records).map(r => r.record_id).filter(Boolean);
     if (recordIds.length === 0) {
       setHistory(prev => ({ ...prev, data: [] }));
       return;
@@ -581,14 +509,6 @@ export default function EncuestaSalidaTab({ id }) {
     }
   };
 
-  const handleCancel = () => {
-    window.location.reload();
-  };
-
-  const handleSave = async () => {
-    await handleSubmit();
-  };
-
   // Función para agregar texto y gestionar saltos de página
   const addTextWithPageBreak = (doc, textLines, x, y, lineHeight, marginBottom, pageMarginBottom) => {
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -614,13 +534,17 @@ export default function EncuestaSalidaTab({ id }) {
     const pageMarginBottom = 40;
     let y = 40; // posición inicial vertical
 
+    // Verificar que tenemos los datos de caracterización
+    console.log('Datos de caracterización:', appState.caracterizacionData);
+
     doc.setFontSize(fontSizes.title);
     doc.setFont(undefined, 'bold');
     doc.text("ENCUESTA DE SALIDA Y SATISFACCIÓN", pageWidth/2, y, { align: 'center' });
     y += 30;
 
     // Tabla superior con datos del emprendimiento
-    const c = appState.caracterizacionData || {};
+    const c = appState.caracterizacionData?.record || {};
+    
     // Mapeo manual de ids a descripciones de tipo de documento
     const tipoIdMap = {
       1: "Cédula de Ciudadanía",
@@ -630,10 +554,8 @@ export default function EncuestaSalidaTab({ id }) {
       5: "Pasaporte",
       6: "Permiso Especial"
     };
-    const tipoIdValue = c["Tipo de identificacion"];
-    let tipoIdDesc = tipoIdMap[tipoIdValue] || tipoIdValue;
+
     // Mapeo manual de ids a nombres de localidad
-    // Modifica este objeto si cambian los ids o nombres de localidad
     const localidadMap = {
       10: "Los Mártires",
       16: "Teusaquillo",
@@ -646,19 +568,33 @@ export default function EncuestaSalidaTab({ id }) {
       27: "Rafael Uribe Uribe",
       28: "Kennedy"
     };
+
+    // Obtener el valor del tipo de documento
+    const tipoIdValue = c["Tipo de identificacion"];
+    const tipoIdDesc = tipoIdMap[tipoIdValue] || tipoIdValue;
+
+    // Obtener el valor de la localidad
     const localidadValue = c["Localidad de la unidad de negocio"];
     const localidadDesc = localidadMap[localidadValue] || localidadValue;
+
+    // Formatear la fecha actual
     const fechaDiligenciamiento = new Date();
     const fechaFormateada = `${fechaDiligenciamiento.getDate().toString().padStart(2, '0')}/${(fechaDiligenciamiento.getMonth() + 1).toString().padStart(2, '0')}/${fechaDiligenciamiento.getFullYear()}`;
+
+    // Preparar los datos para la tabla
     const infoData = [
-      ["Nombre del emprendimiento", c["Nombre del emprendimiento"] || ""],
-      ["Tipo de documento", tipoIdDesc || ""],
-      ["Documento de identidad", c["Numero de identificacion"] || ""],
-      ["Dirección del emprendimiento", c["Direccion de la unidad de negocio"] || ""],
-      ["Localidad donde se encuentra ubicado la microempresa", localidadDesc],
-      ["Valor entregado como capitalización", ""],
+      ["Nombre del emprendimiento", c["Nombre del emprendimiento"] || "No disponible"],
+      ["Tipo de documento", tipoIdDesc || "No disponible"],
+      ["Documento de identidad", c["Numero de identificacion"] || "No disponible"],
+      ["Dirección del emprendimiento", c["Direccion de la unidad de negocio"] || "No disponible"],
+      ["Localidad donde se encuentra ubicado la microempresa", localidadDesc || "No disponible"],
+      ["Valor entregado como capitalización", "No disponible"],
       ["Fecha de diligenciamiento", fechaFormateada]
     ];
+
+    console.log('Datos para la tabla:', infoData);
+
+    // Generar la tabla con los datos
     autoTable(doc, {
       startY: y,
       body: infoData,
@@ -712,10 +648,10 @@ export default function EncuestaSalidaTab({ id }) {
           const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
           if (noOption) {
             const noKey = section.component + '|' + q.text + '|' + noOption.label;
-            const noRec = appState.recordsMap[noKey];
+            const noRec = appState.records[noKey];
             if (noRec && noRec.seleccion) {
               const openKey = section.component + '|' + q.text + '|RazónNo';
-              const openRec = appState.recordsMap[openKey] || {};
+              const openRec = appState.records[openKey] || {};
               if (openRec && openRec.respuesta) {
                 showNoReason = true;
                 noReasonText = openRec.respuesta;
@@ -729,7 +665,7 @@ export default function EncuestaSalidaTab({ id }) {
         let openText = '';
         if (q.openEnded) {
           const key = section.component + '|' + q.text;
-          const rec = appState.recordsMap[key];
+          const rec = appState.records[key];
           if (rec && rec.respuesta) {
             showOpen = true;
             openText = rec.respuesta;
@@ -758,8 +694,8 @@ export default function EncuestaSalidaTab({ id }) {
         doc.setFont(undefined, 'normal');
         // Opciones tipo checklist
         optionsToShow.forEach((opt) => {
-          const key = section.component + '|' + q.text + '|' + opt.label;
-          const rec = appState.recordsMap[key];
+          const key = `${section.component}|${q.text}|${opt.label}`;
+          const rec = appState.records[key] || {};
           // Círculo
           const circleX = cardX + 18;
           const circleY = yCard - 4;
@@ -822,17 +758,24 @@ export default function EncuestaSalidaTab({ id }) {
 
     doc.setFontSize(fontSizes.normal);
     doc.setFont(undefined, 'normal');
-    const nombresCompleto = ((c["Nombres"] || "") + " " + (c["Apellidos"] || "")).trim();
+    
+    // Combinar nombres y apellidos
+    const nombres = c["Nombres"] || "";
+    const apellidos = c["Apellidos"] || "";
+    const nombresCompleto = `${nombres} ${apellidos}`.trim();
 
     const finalData1 = [
       ["Nombre del Empresario:", nombresCompleto || "No disponible"],
-      ["Nombre del Micronegocio:", c["Nombre del emprendimiento"] || ""],
-      ["Documento de identidad:", c["Numero de identificacion"] || ""],
+      ["Nombre del Micronegocio:", c["Nombre del emprendimiento"] || "No disponible"],
+      ["Documento de identidad:", c["Numero de identificacion"] || "No disponible"],
       ["Firma:", "\n\n\n"],
     ];
-    // Calcular el ancho de la columna 2 dinámicamente para que la tabla ocupe el mismo ancho que la encuesta
+
+    // Calcular el ancho de las columnas
     const col1Width = 180;
     const col2Width = maxLineWidth - col1Width;
+
+    // Generar la primera tabla de datos finales
     autoTable(doc, {
       startY: y,
       body: finalData1,
@@ -847,12 +790,16 @@ export default function EncuestaSalidaTab({ id }) {
     });
 
     y = doc.lastAutoTable.finalY + 10;
+
+    // Datos del asesor
     const finalData2 = [
       ["Nombre del Aliado:", "Propais"],
-      ["Nombre del Asesor empresarial:", appState.asesorData.nombre || ""],
-      ["Documento de identidad:", appState.asesorData.documento || ""],
+      ["Nombre del Asesor empresarial:", c["Nombre del asesor"] || "No disponible"],
+      ["Documento de identidad:", c["Numero de identificacion"] || "No disponible"],
       ["Firma:", "\n\n\n"],
     ];
+
+    // Generar la segunda tabla de datos finales
     autoTable(doc, {
       startY: y,
       body: finalData2,
@@ -887,17 +834,17 @@ export default function EncuestaSalidaTab({ id }) {
                   {q.options && (
                     <div className="encuesta-modern-options-row">
                       {q.options.map((opt) => {
-                        const key = section.component + "|" + q.text + "|" + opt.label;
-                        const record = appState.recordsMap[key] || {};
-                        // Usar índices para el name del radio
-                        const radioName = `radio-${sectionIdx}-${qIdx}`;
+                        const key = `${section.component}|${q.text}|${opt.label}`;
+                        const record = appState.records[key] || {};
+                        // Usar una clave única para cada pregunta
+                        const radioName = `radio-${section.component}-${q.text}`;
                         return (
                           <label key={opt.label} className={`encuesta-modern-option-label${record.seleccion ? ' selected' : ''}${opt.label.startsWith('Otro') ? ' hide-option' : ''}`}>
                             <input
                               type="radio"
                               name={radioName}
                               checked={!!record.seleccion}
-                              onChange={() => handleOptionChange(section.component, q.text, opt.label, true)}
+                              onChange={() => handleOptionChange(section.component, q.text, opt)}
                               disabled={localStorage.getItem('role_id') === '3'}
                             />
                             <span className="encuesta-modern-option-text">{opt.label}</span>
@@ -906,7 +853,7 @@ export default function EncuestaSalidaTab({ id }) {
                                 className="encuesta-modern-open-input"
                                 type="text"
                                 value={record.respuesta || ''}
-                                onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value, opt.label)}
+                                onChange={e => handleOpenResponseChange(section.component, q.text, e.target.value, opt.label)}
                                 placeholder="Escribe tu respuesta..."
                                 readOnly={localStorage.getItem('role_id') === '3'}
                               />
@@ -921,8 +868,8 @@ export default function EncuestaSalidaTab({ id }) {
                     <input
                       className="encuesta-modern-open-input"
                       type="text"
-                      value={appState.recordsMap[section.component + '|' + q.text]?.respuesta || ''}
-                      onChange={e => handleOpenEndedChange(section.component, q.text, e.target.value)}
+                      value={appState.records[`${section.component}|${q.text}`]?.respuesta || ''}
+                      onChange={e => handleOpenResponseChange(section.component, q.text, e.target.value)}
                       placeholder="Escribe tu respuesta..."
                       readOnly={localStorage.getItem('role_id') === '3'}
                     />
@@ -932,15 +879,15 @@ export default function EncuestaSalidaTab({ id }) {
                     const noOption = q.options.find(o => o.label.toLowerCase() === 'no');
                     if (!noOption) return null;
                     const noKey = section.component + '|' + q.text + '|' + noOption.label;
-                    const noRecord = appState.recordsMap[noKey] || {};
+                    const noRecord = appState.records[noKey] || {};
                     if (noRecord.seleccion) {
                       const openKey = section.component + '|' + q.text + '|RazónNo';
                       return (
                         <input
                           className="encuesta-modern-open-input"
                           type="text"
-                          value={appState.recordsMap[openKey]?.respuesta || ''}
-                          onChange={e => handleOpenEndedChange(section.component, q.text + '|RazónNo', e.target.value)}
+                          value={appState.records[openKey]?.respuesta || ''}
+                          onChange={e => handleOpenResponseChange(section.component, q.text + '|RazónNo', e.target.value)}
                           placeholder="¿Por qué no participó?"
                         />
                       );
@@ -953,7 +900,7 @@ export default function EncuestaSalidaTab({ id }) {
           ))}
           <div className="encuesta-modern-bottom-bar">
             {localStorage.getItem('role_id') !== '3' && (
-              <button className="encuesta-modern-btn encuesta-modern-btn-primary" onClick={handleSubmit}>Guardar</button>
+              <button className="encuesta-modern-btn encuesta-modern-btn-primary" onClick={handleSave}>Guardar</button>
             )}
             <button className="encuesta-modern-btn encuesta-modern-btn-secondary" onClick={handleCancel}>Cancelar</button>
             <button className="encuesta-modern-btn encuesta-modern-btn-pdf" onClick={handleGeneratePDF}>Descargar PDF</button>
