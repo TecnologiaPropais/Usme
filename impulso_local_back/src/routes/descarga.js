@@ -3,8 +3,11 @@ const archiver = require('archiver');
 const { Storage } = require('@google-cloud/storage');
 const router = express.Router();
 
-const storage = new Storage();
-const bucket = storage.bucket('project_usme_archivos');
+const storage = new Storage({
+  keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+  projectId: process.env.GCP_PROJECT_ID,
+});
+const bucket = storage.bucket(process.env.GCS_BUCKET);
 
 /**
  * Obtiene todos los archivos de una empresa desde GCS bajo inscription_caracterizacion/{empresaId}/
