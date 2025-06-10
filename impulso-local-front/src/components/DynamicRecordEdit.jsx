@@ -49,6 +49,27 @@ export default function DynamicRecordEdit() {
   const [historyError, setHistoryError] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
+  // Opciones para los campos especiales
+  const tipoActividadOptions = [
+    'Comercializador',
+    'Productor',
+    'Prestador de servicios'
+  ];
+  const activosOptions = [
+    'De $0 a $345 mill',
+    'Más de $345 mill y hasta $3,477 mill',
+    'Más de $3,477 mill y hasta $20,684 mill',
+    'Más de $20,684 mill'
+  ];
+
+  // Opciones de priorización
+  const priorizacionOptions = [
+    'Víctima del conflicto armado',
+    'MyPyme/Emprendimiento'
+  ];
+  const [editandoPriorizacion, setEditandoPriorizacion] = useState(false);
+  const [valorPriorizacion, setValorPriorizacion] = useState('');
+
   const getLoggedUserRoleId = () => {
     return localStorage.getItem('role_id') || null;
   };
@@ -149,7 +170,7 @@ export default function DynamicRecordEdit() {
         const estadoExists = !!estadoField;
         setEstadoFieldExists(estadoExists);
 
-        const fieldsToExclude = ['Estado', 'acepta terminos'];
+        const fieldsToExclude = ['Estado', 'Acepta terminos', 'created_at', 'updated_at'];
         const filteredFields = fieldsResponse.data.filter(
           (field) => !fieldsToExclude.includes(field.column_name)
         );
@@ -286,6 +307,12 @@ export default function DynamicRecordEdit() {
       setCompletionPercentage(percentage);
     }
   }, [fields, record]);
+
+  useEffect(() => {
+    if (record && record['Priorizacion capitalizacion']) {
+      setValorPriorizacion(record['Priorizacion capitalizacion']);
+    }
+  }, [record]);
 
   const handleChange = (e) => {
     setRecord({ ...record, [e.target.name]: e.target.value });
@@ -485,6 +512,25 @@ export default function DynamicRecordEdit() {
     } catch (error) {
       console.error('Error añadiendo el comentario:', error);
       setCommentsError('Error añadiendo el comentario');
+    }
+  };
+
+  const handleGuardarPriorizacion = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${config.urls.tables}/${tableName}/record/${recordId}`,
+        { ...record, 'Priorizacion capitalizacion': valorPriorizacion },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setRecord({ ...record, 'Priorizacion capitalizacion': valorPriorizacion });
+      setEditandoPriorizacion(false);
+    } catch (error) {
+      setError('Error guardando la priorización');
     }
   };
 
@@ -759,6 +805,32 @@ export default function DynamicRecordEdit() {
                             </option>
                           ))}
                         </select>
+                      ) : field.column_name === 'Es usted comercializador productor o prestacion de servicios' ? (
+                        <select
+                          className="form-control"
+                          name={field.column_name}
+                          value={record[field.column_name] || ''}
+                          onChange={handleChange}
+                          disabled={role === '3'}
+                        >
+                          <option value="">-- Selecciona una opción --</option>
+                          {tipoActividadOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
+                      ) : field.column_name === 'Activos' ? (
+                        <select
+                          className="form-control"
+                          name={field.column_name}
+                          value={record[field.column_name] || ''}
+                          onChange={handleChange}
+                          disabled={role === '3'}
+                        >
+                          <option value="">-- Selecciona una opción --</option>
+                          {activosOptions.map((option) => (
+                            <option key={option} value={option}>{option}</option>
+                          ))}
+                        </select>
                       ) : relatedData[field.column_name] ? (
                         <select
                           className="form-control"
@@ -852,6 +924,63 @@ export default function DynamicRecordEdit() {
                       )}
                     </div>
                   )}
+
+                  {/* Cuadro de Priorización */}
+                  <div
+                    className="mt-4"
+                    style={{
+                      width: '100%',
+                      background: '#fff',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                      padding: '18px 20px',
+                      marginBottom: '16px',
+                      border: '1px solid #e0e0e0',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12 }}>
+                      Priorizacion
+                    </div>
+                    {editandoPriorizacion ? (
+                      <>
+                        <select
+                          className="form-control mb-2"
+                          value={valorPriorizacion}
+                          onChange={e => setValorPriorizacion(e.target.value)}
+                        >
+                          <option value="">-- Selecciona una opción --</option>
+                          {priorizacionOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <button className="btn btn-success btn-sm mr-2" onClick={handleGuardarPriorizacion}>
+                          Guardar
+                        </button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditandoPriorizacion(false)}>
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {priorizacionOptions.map(opt => (
+                          <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
+                            <span>{opt}</span>
+                            <span style={{ flex: 1 }}></span>
+                            {valorPriorizacion === opt ? (
+                              <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
+                            ) : (
+                              <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
+                            )}
+                          </div>
+                        ))}
+                        {role !== '3' && (
+                          <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
+                            Editar
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
 
                   <div className="mt-4" style={{ width: '100%' }}>
                     <h5>Archivos adicionales</h5>

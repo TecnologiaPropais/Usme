@@ -124,7 +124,7 @@ export default function PublicRecordCreate() {
     [normalize('Nombre del emprendimiento')]: 'Nombre del emprendimiento',
     [normalize('Fecha de inicio actividad economica')]: 'Fecha de inicio actividad económica',
     [normalize('Esta registrado y renovado ante la Camara de Comercio')]: '¿Su emprendimiento está registrada ante la Cámara de Comercio?',
-    [normalize('Logro renovar la matricula del negocio a comienzos del 2023')]: '¿Logró renovar la matrícula del emprendimiento a comienzos del 2024?',
+    [normalize('Logro renovar la matricula del negocio a comienzos del 2023')]: '¿Logró renovar la matrícula del emprendimiento a comienzos del 2025?',
     [normalize('Fecha de registro en Cámara de Comercio')]: 'Fecha de registro en Cámara de Comercio (DD/MM/AAAA)',
     [normalize('NIT')]: 'NIT (sin dígito de verificación)',
     [normalize('Localidad de la unidad de negocio')]: 'Localidad donde se encuentra en funcionamiento el emprendimiento',
@@ -137,7 +137,7 @@ export default function PublicRecordCreate() {
     [normalize('Cuanto tiempo de funcionamiento tiene su emprendimiento')]: '¿Cuánto tiempo de funcionamiento tiene su emprendimiento?',
     [normalize('Vendedor informal o ambulante registrado en el HEMI con RIVI')]: '¿Usted es vendedor informal/ambulante registrado en el HEMI con RIVI de la localidad por la cual se postula?',
     [normalize('Cuantas personas trabajan directamente en el emprendimiento')]: '¿Cuántas personas trabajan directamente en su emprendimiento, incluyéndolo a usted?',
-    [normalize('En que sector productivo se encuentra su emprendimiento')]: '¿En qué sector productivo se encuentra su emprendimiento?',
+    [normalize('En que sector productivo se encuentra su emprendimiento')]: '¿En qué sector económico se encuentra su emprendimiento?',
     [normalize('Cual es la oferta de productos o servicios de su negocio')]: '¿Cuál es la oferta de productos o servicios de su emprendimiento?',
     [normalize('Realiza actividades sostenibles y en proceso de reconversion')]: '¿Su emprendimiento realiza actividades sostenibles y en proceso de reconversión dirigidas al cuidado del medio ambiente?',
     [normalize('Actividad que Ud. Implementa sostenible y de reconversion')]: 'Si su respuesta anterior fue Si - ¿Cuál es esa actividad que usted implementa que es sostenible y en proceso de reconversión dirigidas al cuidado del medio ambiente?',
@@ -175,6 +175,21 @@ export default function PublicRecordCreate() {
   const optionalFields = new Set([
     normalize('Actividad que Ud. Implementa sostenible y de reconversion'),
   ]);
+
+  // Agregar las opciones para el nuevo campo
+  const tipoActividadOptions = [
+    'Comercializador',
+    'Productor',
+    'Prestador de servicios'
+  ];
+
+  // Opciones para el campo Activos
+  const activosOptions = [
+    'De $0 a $345 mill',
+    'Más de $345 mill y hasta $3,477 mill',
+    'Más de $3,477 mill y hasta $20,684 mill',
+    'Más de $20,684 mill'
+  ];
 
   useEffect(() => {
     const fetchFieldsData = async () => {
@@ -524,7 +539,34 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
     let personalDataTextInserted = false;
     let businessInfoTextInserted = false;
 
-    fields.forEach((field) => {
+    // Encuentra el índice del sector económico
+    const sectorIndex = fields.findIndex(
+      (field) => normalize(field.column_name) === normalize('En que sector productivo se encuentra su emprendimiento')
+    );
+    const tipoActividadIndex = fields.findIndex(
+      (field) => normalize(field.column_name) === normalize('Es usted comercializador productor o prestacion de servicios')
+    );
+    // Encuentra el índice de 'Cuánto tiempo de funcionamiento tiene su emprendimiento'
+    const tiempoFuncionamientoIndex = fields.findIndex(
+      (field) => normalize(field.column_name) === normalize('Cuanto tiempo de funcionamiento tiene su emprendimiento')
+    );
+    const activosIndex = fields.findIndex(
+      (field) => normalize(field.column_name) === normalize('Activos')
+    );
+
+    // Reordenar tipo de actividad
+    let orderedFields = [...fields];
+    if (sectorIndex !== -1 && tipoActividadIndex !== -1 && tipoActividadIndex > sectorIndex + 1) {
+      const [tipoActividadField] = orderedFields.splice(tipoActividadIndex, 1);
+      orderedFields.splice(sectorIndex + 1, 0, tipoActividadField);
+    }
+    // Reordenar activos
+    if (tiempoFuncionamientoIndex !== -1 && activosIndex !== -1 && activosIndex > tiempoFuncionamientoIndex + 1) {
+      const [activosField] = orderedFields.splice(activosIndex, 1);
+      orderedFields.splice(tiempoFuncionamientoIndex + 1, 0, activosField);
+    }
+
+    orderedFields.forEach((field) => {
       const normalizedColumnName = normalize(field.column_name);
 
       if (
@@ -568,7 +610,11 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
 
       elements.push(
         <div className="form-group" key={field.column_name}>
-          <label>{fieldLabels[normalizedColumnName] || field.column_name}</label>
+          <label>{
+            normalizedColumnName === normalize('Activos')
+              ? 'Rango de activos (millones $)'
+              : fieldLabels[normalizedColumnName] || field.column_name
+          }</label>
           {Array.isArray(relatedData[field.column_name]) ? (
             <select
               className="form-control"
@@ -578,15 +624,12 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
             >
               <option value="">-- Selecciona una opción --</option>
               {relatedData[field.column_name].map((relatedRecord) => {
-                // ***** INICIO MODIFICACIÓN PARA OCULTAR IDs = 16 y 18 *****
                 if (
                   normalizedColumnName === normalize('Localidad de la unidad de negocio') &&
                   [16, 18, 26, 23, 27].includes(relatedRecord.id)
                 ) {
-                  // Retornamos null para que NO aparezca en el select
                   return null;
                 }
-                // ***** FIN MODIFICACIÓN *****
 
                 return (
                   <option key={relatedRecord.id} value={relatedRecord.id}>
@@ -594,6 +637,32 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
                   </option>
                 );
               })}
+            </select>
+          ) : normalizedColumnName === normalize('Es usted comercializador productor o prestacion de servicios') ? (
+            <select
+              className="form-control"
+              name={field.column_name}
+              value={newRecord[field.column_name] || ''}
+              onChange={handleChange}
+            >
+              <option value="">-- Selecciona una opción --</option>
+              {tipoActividadOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          ) : normalizedColumnName === normalize('Activos') ? (
+            <select
+              className="form-control"
+              name={field.column_name}
+              value={newRecord[field.column_name] || ''}
+              onChange={handleChange}
+            >
+              <option value="">-- Selecciona una opción --</option>
+              {activosOptions.map((option) => (
+                <option key={option} value={option}>{option}</option>
+              ))}
             </select>
           ) : (
             <>
