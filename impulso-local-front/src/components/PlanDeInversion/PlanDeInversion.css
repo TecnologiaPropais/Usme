@@ -203,4 +203,39 @@ input[type=number] {
   align-items: center;
   justify-content: center;
   transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+.columna-preseleccion, .columna-seleccion {
+  max-width: 150px;
+  width: 150px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.columna-precio {
+  max-width: 150px;
+  width: 150px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.columna-rubro {
+  max-width: 120px;
+  width: 120px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.columna-elemento {
+  max-width: 150px;
+  width: 150px;
+  min-width: 80px;
+  text-align: center;
+}
+
+.columna-cantidad {
+  max-width: 150px;
+  width: 150px;
+  min-width: 80px;
+  text-align: center;
 } 

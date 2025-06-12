@@ -16,6 +16,7 @@ export default function FormulacionProvTab({ id }) {
   const [piFormulacionRecords, setPiFormulacionRecords] = useState([]);
   // Estado local para cantidades temporales
   const [localCantidades, setLocalCantidades] = useState({});
+  const [priorizacionCapitalizacion, setPriorizacionCapitalizacion] = useState(null);
 
   // 1. Obtener role_id y verificar si es '5' o '3'
   const roleId = localStorage.getItem('role_id');
@@ -160,6 +161,24 @@ export default function FormulacionProvTab({ id }) {
     });
     setLocalCantidades(nuevasCantidades);
   }, [piFormulacionRecords]);
+
+  useEffect(() => {
+    const fetchPriorizacion = async () => {
+      if (!id) return;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        const response = await axios.get(
+          `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setPriorizacionCapitalizacion(response.data.record?.['Priorizacion capitalizacion'] ?? null);
+      } catch (error) {
+        setPriorizacionCapitalizacion(null);
+      }
+    };
+    fetchPriorizacion();
+  }, [id]);
 
   const handleRubroChange = (e) => {
     setSelectedRubro(e.target.value);
@@ -400,14 +419,25 @@ export default function FormulacionProvTab({ id }) {
             <thead>
               <tr>
                 {fields.map((field) => (
-                  <th key={field.column_name}>
+                  <th
+                    key={field.column_name}
+                    className={
+                      field.column_name === 'Precio'
+                        ? 'columna-precio'
+                        : field.column_name === 'Rubro'
+                        ? 'columna-rubro'
+                        : field.column_name === 'Elemento'
+                        ? 'columna-elemento'
+                        : ''
+                    }
+                  >
                     {field.column_name.replace('_', ' ')}
                   </th>
                 ))}
-                <th>Cantidad</th>
-                <th>Pre-selección</th>
-                <th>Selección</th>
-                <th>Aprobación Comité</th>
+                <th className="text-center columna-cantidad">Cantidad</th>
+                <th className="text-center columna-preseleccion">Pre-selección</th>
+                <th className="text-center columna-seleccion">Selección</th>
+                {/* <th>Aprobación Comité</th> */}
               </tr>
             </thead>
             <tbody>
@@ -418,7 +448,18 @@ export default function FormulacionProvTab({ id }) {
                   return (
                     <tr key={record.id}>
                       {fields.map((field) => (
-                        <td key={field.column_name}>
+                        <td
+                          key={field.column_name}
+                          className={
+                            field.column_name === 'Precio'
+                              ? 'columna-precio'
+                              : field.column_name === 'Rubro'
+                              ? 'columna-rubro'
+                              : field.column_name === 'Elemento'
+                              ? 'columna-elemento'
+                              : ''
+                          }
+                        >
                           {field.column_name === 'Elemento'
                             ? getElementoName(record.Elemento)
                             : field.column_name === 'Rubro'
@@ -428,7 +469,7 @@ export default function FormulacionProvTab({ id }) {
                             : record[field.column_name]}
                         </td>
                       ))}
-                      <td>
+                      <td className="text-center columna-cantidad">
                         <input
                           type="number"
                           min="1"
@@ -445,13 +486,13 @@ export default function FormulacionProvTab({ id }) {
                             setLocalCantidades((prev) => ({ ...prev, [record.id]: val }));
                             handleCantidadChange(record.id, Number(val));
                           }}
-                          style={{ width: '60px', MozAppearance: 'textfield' }}
+                          style={{ width: '60px', MozAppearance: 'textfield', textAlign: 'center' }}
                           className="no-spinner"
                           readOnly={isRole3}
                           disabled={isRole3}
                         />
                       </td>
-                      <td>
+                      <td className="text-center columna-preseleccion">
                         <input
                           type="checkbox"
                           checked={piData["pre-Seleccion"] || false}
@@ -465,7 +506,7 @@ export default function FormulacionProvTab({ id }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td>
+                      <td className="text-center columna-seleccion">
                         <input
                           type="checkbox"
                           checked={piData["Seleccion"] || false}
@@ -479,7 +520,7 @@ export default function FormulacionProvTab({ id }) {
                           disabled={isRole3}
                         />
                       </td>
-                      <td>
+                      {/* <td>
                         <input
                           type="checkbox"
                           checked={piData["Aprobación comité"] || false}
@@ -492,7 +533,7 @@ export default function FormulacionProvTab({ id }) {
                           }
                           disabled={isRole3}
                         />
-                      </td>
+                      </td> */}
                     </tr>
                   );
                 })
@@ -512,12 +553,13 @@ export default function FormulacionProvTab({ id }) {
               <table className="table tabla-moderna">
                 <thead>
                   <tr>
+                    <th className="text-center">Prioridad</th>
                     <th>Nombre proveedor</th>
                     <th>Rubro</th>
                     <th>Elemento</th>
                     <th>Descripción</th>
                     <th>Precio Unitario</th>
-                    <th>Cantidad</th>
+                    <th className="text-center columna-cantidad">Cantidad</th>
                     <th>Total</th>
                   </tr>
                 </thead>
@@ -525,9 +567,6 @@ export default function FormulacionProvTab({ id }) {
                   {selectedRecords.map((piRecord) => {
                     const provider = piRecord.providerData;
                     if (!provider) return null;
-
-                    // Log para depuración
-                    console.log('Provider en productos seleccionados:', provider);
 
                     const cantidad = parseFloat(piRecord.Cantidad) || 1;
                     const precioCatalogo = parseFloat(provider["Valor Catalogo y/o referencia"]) || 0;
@@ -537,12 +576,13 @@ export default function FormulacionProvTab({ id }) {
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
+                        <td className="text-center">{piRecord.selectionorder || ''}</td>
                         <td>{provider["Nombre Proveedor"]}</td>
                         <td>{getRubroName(provider.Rubro)}</td>
                         <td>{getElementoName(provider.Elemento)}</td>
                         <td>{provider["Descripcion corta"] || ''}</td>
                         <td>{precioFormateado}</td>
-                        <td>{cantidad}</td>
+                        <td className="text-center columna-cantidad">{cantidad}</td>
                         <td>{totalFormateado}</td>
                       </tr>
                     );
@@ -576,6 +616,18 @@ export default function FormulacionProvTab({ id }) {
                   <tr>
                     <td>Total</td>
                     <td>{totalInversion}</td>
+                  </tr>
+                  <tr>
+                    <td style={{ color: 'red', fontWeight: 'bold' }}>Valor asignado</td>
+                    <td style={{ color: 'red', fontWeight: 'bold' }}>
+                      {priorizacionCapitalizacion === null || priorizacionCapitalizacion === undefined || priorizacionCapitalizacion === ''
+                        ? 'Sin asignación de priorización'
+                        : priorizacionCapitalizacion === 'Víctima del conflicto armado'
+                        ? '$ 900.000'
+                        : priorizacionCapitalizacion === 'MyPyme/Emprendimiento'
+                        ? '$ 3.000.000'
+                        : 'Sin asignación de priorización'}
+                    </td>
                   </tr>
                 </tfoot>
               </table>
