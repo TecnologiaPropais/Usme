@@ -25,6 +25,7 @@ export default function Content() {
     };
   }, []);
 
+  //Prueba
   return (
     <div className="content-wrapper">
       {/* Content Header (Page header) */}
