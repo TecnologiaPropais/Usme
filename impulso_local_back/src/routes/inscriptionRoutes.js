@@ -18,6 +18,12 @@ router.post(
   inscriptionController.createNewRecord
 );
 
+// Ruta pública para obtener datos de un registro para subsanación (sin autenticación)
+router.get(
+  '/tables/:table_name/record/:record_id/public',
+  inscriptionController.getTableRecordById
+);
+
 // Ruta para obtener los campos de una tabla específica (sin autenticación)
 router.get('/tables/:table_name/fields', inscriptionController.getTableFields);
 
@@ -62,6 +68,9 @@ router.get('/tables/:table_name/record/:record_id', authenticateJWT, authorizePe
 
 // Ruta para actualizar un registro específico (requiere permiso 'manage_tables')
 router.put('/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updateTableRecord);
+
+// Ruta para envío manual de correos (solo para estados 6 y 3)
+router.post('/tables/:table_name/record/:record_id/send-email', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.sendManualEmail);
 
 // Ruta para actualizar el estado de principal de una tabla (requiere permiso 'manage_tables')
 router.put('/tables/:table_name/principal', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updatePrincipalStatus);

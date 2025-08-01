@@ -534,6 +534,29 @@ export default function DynamicRecordEdit() {
     }
   };
 
+  // Función para enviar correo manual
+  const handleSendManualEmail = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        `${config.urls.tables}/${tableName}/record/${recordId}/send-email`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      
+      if (response.status === 200) {
+        alert('Correo enviado correctamente');
+      }
+    } catch (error) {
+      console.error('Error enviando correo manual:', error);
+      alert('Error al enviar el correo: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   const estadoStyle = {
     padding: '10px',
     borderRadius: '5px',
@@ -920,6 +943,23 @@ export default function DynamicRecordEdit() {
                           onClick={handleOpenStatusModal}
                         >
                           Cambiar estado
+                        </button>
+                      )}
+                      {/* Botón Enviar correo - siempre visible */}
+                      {role !== '3' && (
+                        <button
+                          className="btn btn-danger btn-sm btn-block mt-2"
+                          onClick={handleSendManualEmail}
+                          style={{
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '4px',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Enviar correo
                         </button>
                       )}
                     </div>

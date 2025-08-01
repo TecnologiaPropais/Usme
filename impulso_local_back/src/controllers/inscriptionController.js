@@ -16,6 +16,10 @@ const archiver = require('archiver');
 const { DataTypes } = require('sequelize');
 const FieldPreference = require('../models/FieldPreference')(sequelize, DataTypes);
 
+// Importar el modelo EstadoNotificacion y las funciones de correo
+const EstadoNotificacion = require('../models/EstadoNotificacion')(sequelize, DataTypes);
+const { enviarCorreo, renderTemplate } = require('../utils/mailer');
+
 
 // Función auxiliar para insertar en el historial
 async function insertHistory(tableName, recordId, userId, changeType, fieldName, oldValue, newValue, description) {
@@ -1256,6 +1260,50 @@ exports.updateTableRecord = async (req, res) => {
           newRecord[key],
           `Campo ${key} actualizado`
         );
+      }
+    }
+
+    // Lógica para envío automático de correo cuando cambia el estado
+    if (
+      table_name === 'inscription_caracterizacion' &&
+      oldRecord.Estado !== newRecord.Estado &&
+      ![6, 3].includes(newRecord.Estado)
+    ) {
+      try {
+        // Buscar el correo parametrizado por estado destino
+        const notificacion = await EstadoNotificacion.findOne({
+          where: { id_estado_destino: newRecord.Estado }
+        });
+
+        if (notificacion) {
+          // Obtener el último comentario si existe
+          const ultimoComentario = await Comment.findOne({
+            where: {
+              table_name: 'inscription_caracterizacion',
+              record_id: record_id
+            },
+            order: [['created_at', 'DESC']]
+          });
+
+          // Variables para personalizar el correo
+          const variables = {
+            nombre_persona: `${newRecord['Nombres'] || ''} ${newRecord['Apellidos'] || ''}`.trim(),
+            id_inscripcion: newRecord.id,
+            ultimo_comentario: ultimoComentario ? ultimoComentario.comment : 'No hay comentarios pendientes.',
+            nombre_localidad: newRecord['Localidad de la unidad de negocio'] || ''
+          };
+
+          await enviarCorreo({
+            to: newRecord['Correo electronico'],
+            subject: notificacion.asunto,
+            text: renderTemplate(notificacion.cuerpo_correo, variables)
+          });
+
+          console.log(`Correo enviado automáticamente para empresa ID ${record_id}, estado ${newRecord.Estado}`);
+        }
+      } catch (emailError) {
+        console.error('Error enviando correo automático:', emailError);
+        // No fallar la actualización si el correo falla
       }
     }
 
@@ -3153,13 +3201,71 @@ exports.getRecordHistory = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------------------------
+// ----------------------------- CONTROLADOR sendManualEmail -------------------------
+// ----------------------------------------------------------------------------------------
 
+exports.sendManualEmail = async (req, res) => {
+  const { table_name, record_id } = req.params;
 
+  try {
+    if (table_name !== 'inscription_caracterizacion') {
+      return res.status(400).json({ message: 'Solo se permite envío manual para inscription_caracterizacion' });
+    }
 
+    // Obtener el registro actual
+    const [record] = await sequelize.query(
+      `SELECT * FROM "${table_name}" WHERE id = :record_id`,
+      {
+        replacements: { record_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
 
+    if (!record) {
+      return res.status(404).json({ message: 'Registro no encontrado' });
+    }
 
+    // Verificar que el estado sea 6 o 3
+    if (![6, 3].includes(record.Estado)) {
+      return res.status(400).json({ message: 'El envío manual de correos solo está disponible para estados de Subsanación y Revisión documental' });
+    }
 
+    // Buscar el correo parametrizado por estado destino
+    const notificacion = await EstadoNotificacion.findOne({
+      where: { id_estado_destino: record.Estado }
+    });
 
+    if (!notificacion) {
+      return res.status(404).json({ message: 'No se encontró configuración de correo para este estado' });
+    }
 
+    // Obtener el último comentario si existe
+    const ultimoComentario = await Comment.findOne({
+      where: {
+        table_name: 'inscription_caracterizacion',
+        record_id: record_id
+      },
+      order: [['created_at', 'DESC']]
+    });
 
+    // Variables para personalizar el correo
+    const variables = {
+      nombre_persona: `${record['Nombres'] || ''} ${record['Apellidos'] || ''}`.trim(),
+      id_inscripcion: record.id,
+      ultimo_comentario: ultimoComentario ? ultimoComentario.comment : 'No hay comentarios pendientes.',
+      nombre_localidad: record['Localidad de la unidad de negocio'] || ''
+    };
 
+    await enviarCorreo({
+      to: record['Correo electronico'],
+      subject: notificacion.asunto,
+      text: renderTemplate(notificacion.cuerpo_correo, variables)
+    });
+
+    res.status(200).json({ message: 'Correo enviado manualmente con éxito' });
+  } catch (error) {
+    console.error('Error enviando correo manual:', error);
+    res.status(500).json({ message: 'Error enviando correo manual', error: error.message });
+  }
+};

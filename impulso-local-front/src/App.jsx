@@ -21,6 +21,7 @@ import ProviderTableList from './components/ProviderTableList';
 import PiTableList from './components/PiTableList';
 import PlanDeInversion from './components/PlanDeInversion';
 import PublicRecordCreate from './components/PublicRecordCreate'; // Importar el componente PublicRecordCreate
+import SubsanacionPage from './components/SubsanacionPage'; // Importar el componente SubsanacionPage
 import DescargaMasiva from './components/DescargaMasiva';
 
 function PrivateRoute({ children }) {
@@ -47,6 +48,9 @@ export default function App() {
 
         {/* Ruta pública para crear un registro */}
         <Route path="/table/:tableName/create-record" element={<PublicRecordCreate />} />
+
+        {/* Ruta pública para subsanación de documentos */}
+        <Route path="/subsanar/:id" element={<SubsanacionPage />} />
 
         {/* Rutas privadas */}
         <Route
