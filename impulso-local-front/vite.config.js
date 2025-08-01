@@ -7,7 +7,7 @@ import react from '@vitejs/plugin-react'
 // En producción, déjalo comentado o elimínalo.
 // ====================
 
-
+/*
 export default defineConfig({
   plugins: [react()],
   server: {
@@ -16,7 +16,7 @@ export default defineConfig({
     }
   }
 })
-
+*/
 
 // ====================
 // CONFIGURACIÓN PARA PRODUCCIÓN:
@@ -24,8 +24,7 @@ export default defineConfig({
 // - El bloque de proxy arriba no afecta el build si está comentado.
 // ====================
 
-/*
+
 export default defineConfig({
   plugins: [react()]
 })
-*/

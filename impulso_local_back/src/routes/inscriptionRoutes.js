@@ -88,6 +88,13 @@ router.post(
   inscriptionController.uploadFile
 );
 
+// Ruta específica para subsanación (sin autenticación)
+router.post(
+  '/tables/:table_name/record/:record_id/upload-subsanacion',
+  upload.single('file'),
+  inscriptionController.uploadFileSubsanacion
+);
+
 
 // Ruta para obtener archivos asociados a un registro (requiere permiso 'view_tables')
 router.get(

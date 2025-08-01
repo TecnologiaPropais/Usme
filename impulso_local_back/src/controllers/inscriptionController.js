@@ -1676,6 +1676,19 @@ exports.uploadFile = async (req, res) => {
     let finalFileName = fileName || req.file.originalname;
     let gcsPath;
 
+    // Obtener información del registro para crear la estructura de carpetas
+    let recordInfo = null;
+    if (table_name === 'inscription_caracterizacion') {
+      const [record] = await sequelize.query(
+        `SELECT "Numero de identificacion", "Nombres", "Apellidos" FROM "${table_name}" WHERE id = :record_id`,
+        {
+          replacements: { record_id },
+          type: sequelize.QueryTypes.SELECT,
+        }
+      );
+      recordInfo = record;
+    }
+
     if (table_name.startsWith('pi_')) {
       if (!caracterizacion_id) {
         // console.error('[uploadFile] Falta caracterizacion_id para tabla pi_');
@@ -1685,6 +1698,15 @@ exports.uploadFile = async (req, res) => {
       }
       finalRecordId = caracterizacion_id;
       gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${finalFileName}`;
+    } else if (table_name === 'inscription_caracterizacion' && recordInfo) {
+      // Nueva estructura de carpetas para inscription_caracterizacion
+      const cedula = recordInfo['Numero de identificacion'] || 'sin_cedula';
+      const nombres = recordInfo['Nombres'] || '';
+      const apellidos = recordInfo['Apellidos'] || '';
+      const nombreCompleto = `${nombres} ${apellidos}`.trim() || 'sin_nombre';
+      
+      // Crear la estructura: cedula_nombre/1. Documentos iniciales/archivo
+      gcsPath = `${cedula}_${nombreCompleto}/1. Documentos iniciales/${finalFileName}`;
     } else {
       gcsPath = `${table_name}/${record_id}/${finalFileName}`;
     }
@@ -1755,8 +1777,100 @@ exports.uploadFile = async (req, res) => {
   }
 };
 
+// ----------------------------------------------------------------------------------------
+// --------------------------- CONTROLADOR uploadFileSubsanacion ---------------------------
+// ----------------------------------------------------------------------------------------
 
+exports.uploadFileSubsanacion = async (req, res) => {
+  const { table_name, record_id } = req.params;
+  const { fileName, fileType } = req.body;
 
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No se ha subido ningún archivo' });
+    }
+
+    if (table_name !== 'inscription_caracterizacion') {
+      return res.status(400).json({ message: 'Solo se permite subsanación para inscription_caracterizacion' });
+    }
+
+    let finalFileName = fileName || req.file.originalname;
+    let gcsPath;
+
+    // Obtener información del registro para crear la estructura de carpetas
+    const [record] = await sequelize.query(
+      `SELECT "Numero de identificacion", "Nombres", "Apellidos" FROM "${table_name}" WHERE id = :record_id`,
+      {
+        replacements: { record_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!record) {
+      return res.status(404).json({ message: 'Registro no encontrado' });
+    }
+
+    // Nueva estructura de carpetas para subsanación
+    const cedula = record['Numero de identificacion'] || 'sin_cedula';
+    const nombres = record['Nombres'] || '';
+    const apellidos = record['Apellidos'] || '';
+    const nombreCompleto = `${nombres} ${apellidos}`.trim() || 'sin_nombre';
+    
+    // Crear la estructura: cedula_nombre/1. Documentos iniciales/archivo
+    gcsPath = `${cedula}_${nombreCompleto}/1. Documentos iniciales/${finalFileName}`;
+
+    // Sube el archivo temporal a GCS
+    let publicUrl;
+    try {
+      publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
+    } catch (gcsError) {
+      return res.status(500).json({
+        message: 'Error subiendo el archivo a Google Cloud Storage',
+        error: gcsError.message || gcsError,
+      });
+    }
+
+    // Borra el archivo temporal local
+    try {
+      fs.unlinkSync(req.file.path);
+    } catch (fsError) {
+      console.error('Error eliminando archivo temporal:', fsError);
+    }
+
+    // Guarda la URL pública en la base de datos
+    const newFile = await File.create({
+      record_id: record_id,
+      table_name,
+      name: finalFileName,
+      file_path: publicUrl,
+      source: 'subsanacion',
+    });
+
+    // Insertar en el historial
+    await insertHistory(
+      table_name,
+      record_id,
+      0, // user_id = 0 para subsanación pública
+      'upload_file',
+      'Archivo de subsanación',
+      null,
+      newFile.name,
+      `Se subió archivo de subsanación: ${newFile.name}`
+    );
+
+    res.status(200).json({
+      message: 'Archivo de subsanación subido exitosamente',
+      file: newFile,
+      url: publicUrl,
+    });
+  } catch (error) {
+    console.error('[uploadFileSubsanacion] Error general:', error);
+    res.status(500).json({
+      message: 'Error subiendo el archivo de subsanación',
+      error: error.message,
+    });
+  }
+};
 
 // ----------------------------------------------------------------------------------------
 // --------------------------- CONTROLADOR getFiles (modificado) -------------------------

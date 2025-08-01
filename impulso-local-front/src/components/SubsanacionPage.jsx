@@ -61,24 +61,20 @@ export default function SubsanacionPage() {
   const [modalMessage, setModalMessage] = useState('');
   const [modalType, setModalType] = useState('');
 
-  // Lista de tipos de documentos (se puede expandir después)
+  // Lista de documentos requeridos para subsanación
   const documentTypes = [
-    'Cédula de Ciudadanía',
+    'Copia de documento de identidad por ambas caras',
+    'Factura de servicio publico por ambas caras',
+    'Evidencia de existencia de mínimo un año',
+    'Registro Cámara de Comercio (Solo si aplica)',
     'RUT',
-    'Certificado de Cámara de Comercio',
-    'Certificado de Tradición y Libertad',
-    'Certificado de Paz y Salvo',
-    'Certificado de Uso de Suelo',
-    'Certificado de Estabilidad Fiscal',
-    'Certificado de Retención en la Fuente',
-    'Certificado de ReteIVA',
-    'Certificado de ReteICA',
-    'Certificado de ReteFuente',
-    'Certificado de ReteCree',
-    'Certificado de ReteIVA',
-    'Certificado de ReteICA',
-    'Certificado de ReteFuente',
-    'Certificado de ReteCree',
+    'Certificación discapacidad expedida por Secretaria de Salud (Solo si aplica)',
+    'Certificado de cuidador (Solo si aplica)',
+    'Certificado de Población indígena (Solo si aplica)',
+    'Certificación de RIVI (Solo si aplica)',
+    'Antecedentes Policía',
+    'Antecedentes Procuraduría',
+    'Antecedentes Contraloría',
     'Otro'
   ];
 
@@ -164,7 +160,7 @@ export default function SubsanacionPage() {
         formData.append('fileType', fileItem.type);
 
         return axios.post(
-          `${config.baseUrl}/inscriptions/tables/inscription_caracterizacion/record/${id}/upload`,
+          `${config.baseUrl}/inscriptions/tables/inscription_caracterizacion/record/${id}/upload-subsanacion`,
           formData,
           {
             headers: {

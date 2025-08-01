@@ -803,6 +803,8 @@ export default function DynamicRecordEdit() {
               <div className={isPrimaryTable ? 'col-md-8' : 'col-md-12'}>
                 <form onSubmit={handleSubmit}>
                   {fields.map((field) => (
+                    // Ocultar el campo "Priorización capitalización" ya que se maneja en el cuadro superior derecho
+                    field.column_name === 'Priorizacion capitalizacion' ? null : (
                     <div className="form-group" key={field.column_name}>
                       <label>{field.column_name}</label>
                       {field.column_name === 'id' ? (
@@ -885,6 +887,7 @@ export default function DynamicRecordEdit() {
                         />
                       )}
                     </div>
+                  )
                   ))}
 
                   {role !== '3' && (

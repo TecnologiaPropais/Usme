@@ -143,7 +143,7 @@ export default function PublicRecordCreate() {
     [normalize('Actividad que Ud. Implementa sostenible y de reconversion')]: 'Si su respuesta anterior fue Si - ¿Cuál es esa actividad que usted implementa que es sostenible y en proceso de reconversión dirigidas al cuidado del medio ambiente?',
     [normalize('Tiene acceso a internet y a un dispositivo')]: '¿Tiene acceso a internet y/o a un dispositivo que le permita acceder a las cápsulas de conocimiento?',
     [normalize('Cuenta con plan de datos en su celular')]: '¿Cuenta con plan de datos en su celular?',
-    [normalize('Dispone de una cuenta bancaria o billetera electronica')]: '¿Dispone de una cuenta bancaria o algún servicio de billetera electrónica que le permita recibir el incentivo económico?',
+    [normalize('Dispone de una cuenta bancaria o billetera electronica')]: '¿Dispone de una cuenta bancaria o algún servicio de billetera electrónica?',
     [normalize('Cual')]: '¿Cuál?',
     [normalize('Numero de clientes actuales')]: 'Número de clientes actuales',
     [normalize('Valor de ventas promedio mensual')]: 'Valor de ventas promedio mensual',
@@ -605,6 +605,11 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
 
       // Excluir el campo "Acepta terminos"
       if (normalizedColumnName === normalize('acepta terminos')) {
+        return;
+      }
+
+      // Excluir el campo "Priorización capitalización" ya que se maneja automáticamente
+      if (normalizedColumnName === normalize('Priorizacion capitalizacion')) {
         return;
       }
 

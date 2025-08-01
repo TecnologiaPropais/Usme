@@ -3,7 +3,7 @@ require('dotenv').config();
 
 // Forzar SSL para conexiones de producción
 const isProduction = process.env.NODE_ENV === 'production';
-const useSSL = isProduction || process.env.DB_SSL === 'true';
+const useSSL = isProduction || process.env.DB_SSL === 'true' || process.env.DATABASE_URL;
 
 const sequelize = new Sequelize(
   process.env.DATABASE_URL || `postgresql://${process.env.DB_USER}:${process.env.DB_PASSWORD}@${process.env.DB_HOST}:${process.env.DB_PORT}/${process.env.DB_NAME}`,
