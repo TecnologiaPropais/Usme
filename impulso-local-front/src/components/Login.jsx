@@ -96,7 +96,7 @@ export default function Login() {
           />
         </div>
         <h2>Bienvenido,</h2>
-        <p>Sistema de información del proyecto Impulso Local</p>
+        <p>Sistema de información del proyecto Usme Orgullo Local</p>
         <form onSubmit={handleSubmit}>
           <div className="input-group mb-3">
             <input

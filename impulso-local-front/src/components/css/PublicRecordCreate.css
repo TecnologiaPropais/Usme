@@ -27,8 +27,8 @@ text-align: center;
 .sidebar-logo {
 display: block;
 margin: 20px auto; /* Espaciado superior e inferior */
-max-width: 80%;
-max-height: 100px;
+max-width: 180%;
+max-height: 200px; /* Aumentado para hacer el logo más grande */
 object-fit: contain; /* Ajusta la imagen sin distorsión */
 }
 

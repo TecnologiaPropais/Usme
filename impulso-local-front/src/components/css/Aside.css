@@ -4,20 +4,31 @@
     color: white; /* Texto blanco */
 }
 
-/* Fondo blanco solo en la sección del logo */
+/* Fondo magenta para la sección del logo */
 .brand-link {
-    background-color: white; /* Fondo blanco para el logo */
+    background-color: ##e61a4e; /* Fondo magenta/fucsia para el logo */
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 15px;
-    border-bottom: 1px solid #f4f6f9;
+    padding: 0; /* Sin padding para que el logo sea más grande */
+    border-bottom: 1px solid #e61a4e;
+    height: 60px; /* Altura fija para alinear con "Panel" */
 }
 
 .brand-image {
-    height: 50px; /* Ajustar el tamaño del logo */
-    max-width: 100%; /* Escalar correctamente */
+    height: 50px !important; /* Tamaño base */
+    max-width: 100% !important; /* Escalar correctamente */
     margin-right: 10px;
+    width: auto !important; /* Mantener proporción */
+    transform: scale(2.0) !important; /* Escalar 80% más grande */
+}
+
+/* Selector más específico para asegurar que se aplique */
+.brand-link .brand-image {
+    height: 50px !important;
+    max-width: 100% !important;
+    width: auto !important;
+    transform: scale(2.0) !important; /* Escalar 80% más grande */
 }
 
 .brand-text {

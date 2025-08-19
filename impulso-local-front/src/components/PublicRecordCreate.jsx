@@ -79,10 +79,6 @@ export default function PublicRecordCreate() {
     'Evidencia de existencia de mínimo un año',
     'Registro Cámara de Comercio (Solo si aplica)',
     'RUT',
-    'Certificación discapacidad expedida por Secretaria de Salud (Solo si aplica)',
-    'Certificado de cuidador (Solo si aplica)',
-    'Certificado de Población indígena (Solo si aplica)',
-    'Certificación de RIVI (Solo si aplica)',
     'Antecedentes Policía',
     'Antecedentes Procuraduría',
     'Antecedentes Contraloría',
@@ -576,7 +572,7 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
         // Agregar el nuevo texto con el enlace
         elements.push(
           <p key="document-list">
-            <a href="/Impulso-2.jpeg" target="_blank" rel="noopener noreferrer">
+            <a href="/REQUISITOS.pdf" target="_blank" rel="noopener noreferrer">
               Descargue aquí el listado de documentos que debe adjuntar al finalizar este formulario
             </a>
           </p>

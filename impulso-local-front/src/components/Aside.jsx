@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import logo from '../assets/img/Impulso.png';
+import logo from '../assets/img/logo_aside.png';
 import './css/Aside.css';
 
 export default function Aside() {
@@ -39,7 +39,7 @@ export default function Aside() {
         <div className="brand-link">
           <Link to="/escritorio" className="brand-link">
             <img
-              src={logo}
+              src="/logo_aside.png"
               alt="Impulso Capital Logo"
               className="brand-image"
             />

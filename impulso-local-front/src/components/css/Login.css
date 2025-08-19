@@ -62,10 +62,15 @@
     margin: 20px auto 0 auto; /* Centrar horizontalmente */
   }
   
-  /* Sección derecha: Espacio para la imagen futura */
+  /* Sección derecha: Imagen de fondo */
   .login-side {
     flex-basis: 65%;
-    background-color: #e61a4e;
+    background-image: url('/login-background.png') !important; /* Imagen de fondo */
+    background-size: cover !important; /* Cubrir todo el espacio */
+    background-position: center !important; /* Centrar la imagen */
+    background-repeat: no-repeat !important; /* No repetir la imagen */
+    position: relative !important; /* Para poder agregar overlay si es necesario */
+    background-color: transparent !important; /* Quitar el color de fondo */
   }
   
   /* Mensajes de éxito y error en la esquina superior derecha */
