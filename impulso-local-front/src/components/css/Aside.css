@@ -6,7 +6,7 @@
 
 /* Fondo magenta para la sección del logo */
 .brand-link {
-    background-color: ##e61a4e; /* Fondo magenta/fucsia para el logo */
+    background-color: #e61a4e; /* Fondo magenta/fucsia para el logo */
     display: flex;
     align-items: center;
     justify-content: center;
