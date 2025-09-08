@@ -185,15 +185,33 @@ const nodemailer = require('nodemailer'); // Para enviar correos
 // Solicitar recuperación de contraseña (Enviar el token por correo)
 exports.forgotPassword = async (req, res) => {
   const { email } = req.body;
+  console.log('Forgot password request for email:', email);
+  
   try {
+    // Verificar variables de entorno
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.error('Email configuration missing:', {
+        EMAIL_USER: !!process.env.EMAIL_USER,
+        EMAIL_PASS: !!process.env.EMAIL_PASS
+      });
+      return res.status(500).json({ 
+        message: 'Configuración de email no encontrada',
+        error: 'EMAIL_USER o EMAIL_PASS no están configuradas'
+      });
+    }
+
     // Verificar si el usuario existe
     const user = await User.findOne({ where: { email } });
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(404).json({ message: 'Usuario no encontrado' });
     }
 
+    console.log('User found:', user.id);
+
     // Crear un token JWT para la recuperación (válido por 15 minutos)
     const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '15m' });
+    console.log('Token created successfully');
 
     // Configurar el transporte de nodemailer para enviar el correo
     const transporter = nodemailer.createTransport({
@@ -203,6 +221,7 @@ exports.forgotPassword = async (req, res) => {
         pass: process.env.EMAIL_PASS,
       },
     });
+    console.log('Transporter configured');
 
     // Enviar el correo
     const resetUrl = process.env.NODE_ENV === 'production' 
@@ -217,13 +236,17 @@ exports.forgotPassword = async (req, res) => {
     };
     
 
+    console.log('Attempting to send email...');
     transporter.sendMail(mailOptions, (error, info) => {
       if (error) {
+        console.error('Error sending email:', error);
         return res.status(500).json({ message: 'Error enviando el correo', error: error.message });
       }
+      console.log('Email sent successfully:', info);
       res.status(200).json({ message: 'Correo enviado con éxito' });
     });
   } catch (error) {
+    console.error('Error in forgotPassword:', error);
     res.status(500).json({ message: 'Error solicitando recuperación de contraseña', error: error.message });
   }
 };
