@@ -205,11 +205,15 @@ exports.forgotPassword = async (req, res) => {
     });
 
     // Enviar el correo
+    const resetUrl = process.env.NODE_ENV === 'production' 
+      ? `https://proyecto-usme.netlify.app/reset-password/${token}`
+      : `http://localhost:5173/reset-password/${token}`;
+    
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
       subject: 'Recuperación de contraseña',
-      text: `Usa este enlace para restablecer tu contraseña: http://localhost:5173/reset-password/${token}`, 
+      text: `Usa este enlace para restablecer tu contraseña: ${resetUrl}`, 
     };
     
 
