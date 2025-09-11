@@ -1858,6 +1858,34 @@ exports.uploadFileSubsanacion = async (req, res) => {
       `Se subió archivo de subsanación: ${newFile.name}`
     );
 
+    // Actualizar el estado a 9 (Subsanado) después de cargar documentos
+    try {
+      await sequelize.query(
+        `UPDATE "${table_name}" SET "Estado" = 9 WHERE id = :record_id`,
+        {
+          replacements: { record_id },
+          type: sequelize.QueryTypes.UPDATE,
+        }
+      );
+
+      // Insertar en el historial el cambio de estado
+      await insertHistory(
+        table_name,
+        record_id,
+        0, // user_id = 0 para subsanación pública
+        'update_record',
+        'Cambio de estado automático',
+        null,
+        'Estado',
+        `Estado cambiado automáticamente a 9 (Subsanado) después de cargar documentos de subsanación`
+      );
+
+      console.log(`Estado actualizado a 9 (Subsanado) para registro ID ${record_id} después de subsanación`);
+    } catch (updateError) {
+      console.error('Error actualizando el estado después de subsanación:', updateError);
+      // No fallar la operación si el cambio de estado falla
+    }
+
     res.status(200).json({
       message: 'Archivo de subsanación subido exitosamente',
       file: newFile,
