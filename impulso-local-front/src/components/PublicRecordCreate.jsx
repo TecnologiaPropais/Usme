@@ -82,6 +82,7 @@ export default function PublicRecordCreate() {
     'Antecedentes Policía',
     'Antecedentes Procuraduría',
     'Antecedentes Contraloría',
+    'Certificado de la unidad para la atención y reparación a las víctimas (Uariv)',
     'Otros',
   ];
 
@@ -739,7 +740,7 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
                   <label className="form-check-label" htmlFor="acceptedTerms">
                     Acepto los{' '}
                     <a
-                      href="https://il30.propais.org.co/terminos-y-condiciones"
+                      href="/Términos y condiciones Usme.pdf"
                       target="_blank"
                       rel="noopener noreferrer"
                     >

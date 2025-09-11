@@ -75,6 +75,7 @@ export default function SubsanacionPage() {
     'Antecedentes Policía',
     'Antecedentes Procuraduría',
     'Antecedentes Contraloría',
+    'Certificado de la unidad para la atención y reparación a las víctimas (Uariv)',
     'Otro'
   ];
 
