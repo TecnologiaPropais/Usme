@@ -407,6 +407,19 @@ export default function DynamicTableList() {
                                             Subsanacion
                                           </span>
                                         );
+                                      } else if (estadoNombre === 'subsanado') {
+                                        return (
+                                          <span 
+                                            className="badge" 
+                                            style={{
+                                              backgroundColor: '#ffb812',
+                                              color: '#cc5500',
+                                              fontWeight: 'bold'
+                                            }}
+                                          >
+                                            Subsanado
+                                          </span>
+                                        );
                                       } else if (estadoNombre === 'preseleccionado') {
                                         return (
                                           <span className="badge badge-info">

@@ -3342,7 +3342,7 @@ exports.sendManualEmail = async (req, res) => {
 
     // Verificar que el estado sea 6 o 3
     if (![6, 3].includes(record.Estado)) {
-      return res.status(400).json({ message: 'El envío manual de correos solo está disponible para estados de Subsanación y Revisión documental' });
+      return res.status(400).json({ message: 'El envío manual de correos solo está disponible para estados de Subsanación y Rechazado' });
     }
 
     // Buscar el correo parametrizado por estado destino
