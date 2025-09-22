@@ -171,6 +171,7 @@ export default function PublicRecordCreate() {
   // Campos opcionales
   const optionalFields = new Set([
     normalize('Actividad que Ud. Implementa sostenible y de reconversion'),
+    normalize('Priorizacion capitalizacion'),
   ]);
 
   // Agregar las opciones para el nuevo campo
