@@ -166,6 +166,7 @@ export default function PublicRecordCreate() {
     normalize('Telefono fijo de la unidad de negocio'),
     normalize('Celular'),
     normalize('Celular 2'),
+    normalize('Numero de identificacion'),
   ]);
 
   // Campos opcionales
@@ -242,6 +243,12 @@ export default function PublicRecordCreate() {
     // Si es un campo numérico, eliminar todo lo que no sea dígito
     if (numericFields.has(normalizedColumnName)) {
       newValue = newValue.replace(/\D/g, '');
+    }
+
+    // Validación específica para 'Numero de identificacion': eliminar espacios y solo permitir números
+    if (name === 'Numero de identificacion') {
+      // Eliminar espacios y caracteres no numéricos
+      newValue = newValue.replace(/\s/g, '').replace(/\D/g, '');
     }
 
     setNewRecord({ ...newRecord, [name]: newValue });
