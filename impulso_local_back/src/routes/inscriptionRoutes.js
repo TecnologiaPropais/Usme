@@ -112,6 +112,20 @@ router.delete(
   inscriptionController.deleteFile
 );
 
+// Ruta para generar URL firmada de un archivo
+router.get(
+  '/files/signed-url/:filePath',
+  authenticateJWT,
+  inscriptionController.getSignedUrl
+);
+
+// Ruta específica para eliminar archivos de tablas pi_
+router.delete(
+  '/pi/tables/:table_name/record/:record_id/file/:file_name',
+  authenticateJWT,
+  inscriptionController.deletePiFile
+);
+
 router.get(
   '/tables/:table_name/record/:record_id/download-zip',
   authenticateJWT,

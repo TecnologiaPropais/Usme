@@ -64,6 +64,10 @@ export default function PublicRecordCreate() {
   // Estados para validación
   const [fieldErrors, setFieldErrors] = useState({});
   const typingTimeoutRef = useRef({});
+  
+  // Refs para manejar el scroll en campos numéricos
+  // Map para guardar valores, handlers y elementos de cada campo numérico
+  const numericFieldsRefs = useRef(new Map());
 
   // Estado para el checkbox de aceptación de términos
   const [acceptedTerms, setAcceptedTerms] = useState(false);
@@ -228,6 +232,72 @@ export default function PublicRecordCreate() {
     fetchFieldsData();
   }, [tableName]);
 
+  // Función genérica para manejar el focus de campos numéricos
+  const handleNumericFieldFocus = (e, fieldName) => {
+    const inputElement = e.target;
+    const normalizedFieldName = normalize(fieldName);
+    
+    // Guardar referencia al elemento y valor actual
+    const fieldData = {
+      element: inputElement,
+      value: inputElement.value
+    };
+    numericFieldsRefs.current.set(normalizedFieldName, fieldData);
+    
+    const handleWheel = (event) => {
+      // Si el elemento enfocado es nuestro input
+      const currentFieldData = numericFieldsRefs.current.get(normalizedFieldName);
+      if (document.activeElement === inputElement && currentFieldData && currentFieldData.element === inputElement) {
+        // Actualizar el valor guardado justo antes de prevenir el evento
+        currentFieldData.value = inputElement.value;
+        
+        // Prevenir el comportamiento por defecto que cambia el valor
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        
+        // Esperar un momento para que si el navegador cambió el valor, poder restaurarlo
+        setTimeout(() => {
+          if (inputElement && currentFieldData) {
+            const savedValue = currentFieldData.value;
+            if (inputElement.value !== savedValue) {
+              inputElement.value = savedValue;
+              // Disparar evento de cambio para actualizar React
+              const changeEvent = new Event('input', { bubbles: true });
+              inputElement.dispatchEvent(changeEvent);
+            }
+          }
+        }, 0);
+        
+        // Quitar el foco para evitar más cambios
+        inputElement.blur();
+        
+        return false;
+      }
+    };
+
+    // Guardar el handler en los datos del campo
+    fieldData.wheelHandler = handleWheel;
+    numericFieldsRefs.current.set(normalizedFieldName, fieldData);
+
+    // Agregar el listener en fase de captura y con passive: false
+    window.addEventListener('wheel', handleWheel, { passive: false, capture: true });
+  };
+
+  // Función genérica para manejar el blur de campos numéricos
+  const handleNumericFieldBlur = (fieldName) => {
+    const normalizedFieldName = normalize(fieldName);
+    const fieldData = numericFieldsRefs.current.get(normalizedFieldName);
+    
+    // Remover el listener cuando el campo pierde el foco
+    if (fieldData && fieldData.wheelHandler) {
+      window.removeEventListener('wheel', fieldData.wheelHandler, { capture: true });
+      // Mantener los datos pero sin el handler
+      fieldData.wheelHandler = null;
+      numericFieldsRefs.current.set(normalizedFieldName, fieldData);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     const normalizedColumnName = normalize(name);
@@ -249,6 +319,15 @@ export default function PublicRecordCreate() {
     if (name === 'Numero de identificacion') {
       // Eliminar espacios y caracteres no numéricos
       newValue = newValue.replace(/\s/g, '').replace(/\D/g, '');
+    }
+
+    // Actualizar el valor guardado para campos numéricos
+    if (numericFields.has(normalizedColumnName)) {
+      const fieldData = numericFieldsRefs.current.get(normalizedColumnName);
+      if (fieldData) {
+        fieldData.value = newValue;
+        numericFieldsRefs.current.set(normalizedColumnName, fieldData);
+      }
     }
 
     setNewRecord({ ...newRecord, [name]: newValue });
@@ -695,6 +774,16 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
                     : newRecord[field.column_name] || ''
                 }
                 onChange={handleChange}
+                onFocus={
+                  numericFields.has(normalizedColumnName)
+                    ? (e) => handleNumericFieldFocus(e, field.column_name)
+                    : undefined
+                }
+                onBlur={
+                  numericFields.has(normalizedColumnName)
+                    ? () => handleNumericFieldBlur(field.column_name)
+                    : undefined
+                }
                 className="form-control"
               />
             </>

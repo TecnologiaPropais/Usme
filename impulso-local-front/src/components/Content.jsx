@@ -28,17 +28,6 @@ export default function Content() {
   //Prueba
   return (
     <div className="content-wrapper">
-      {/* Content Header (Page header) */}
-      <section className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1>Escritorio</h1>
-            </div>
-          </div>
-        </div>{/* /.container-fluid */}
-      </section>
-      
       {/* Main content */}
       <section className="content">
         <div className="container-fluid">
@@ -46,25 +35,16 @@ export default function Content() {
             <div className="col-12">
               {/* Default box */}
               <div className="card">
-                <div className="card-header">
-                  <h3 className="card-title">Estadísticas</h3>
-                  <div className="card-tools">
-                    <button type="button" className="btn btn-tool" data-card-widget="collapse" title="Collapse">
-                      <i className="fas fa-minus" />
-                    </button>
-                    <button type="button" className="btn btn-tool" data-card-widget="remove" title="Remove">
-                      <i className="fas fa-times" />
-                    </button>
-                  </div>
-                </div>
                 <div className="card-body text-center">
                   <div className="embed-responsive embed-responsive-16by9">
                     <iframe 
-                      title="IL 2024" 
+                      title="UsmeOrgulloLocal" 
+                      width="600" 
+                      height="373.5" 
                       className="embed-responsive-item" 
-                      src="https://app.powerbi.com/view?r=eyJrIjoiOWEwOWJiN2QtNjY4YS00MDA2LTliM2ItY2MxOGEwN2FlNjlkIiwidCI6IjgxNjQwZjgyLTVjNDAtNGI5Yi1hYWM2LWQzMjM4ODQ2NjcxMSIsImMiOjR9" 
-                      frameBorder="0" 
-                      allowFullScreen>
+                      src="https://app.powerbi.com/view?r=eyJrIjoiMGY0YTVjMzUtYmFmNi00OTg4LWFiYjAtZjhlYWY0NTEzZmUwIiwidCI6IjgxNjQwZjgyLTVjNDAtNGI5Yi1hYWM2LWQzMjM4ODQ2NjcxMSIsImMiOjR9&pageName=dd0380d69c48777d5fff" 
+                      frameborder="0" 
+                      allowFullScreen="true">
                     </iframe>
                   </div>
                 </div>

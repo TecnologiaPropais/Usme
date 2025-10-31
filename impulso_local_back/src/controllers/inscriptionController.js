@@ -1654,7 +1654,11 @@ exports.getFieldOptions = async (req, res) => {
 exports.uploadFile = async (req, res) => {
   const { table_name, record_id } = req.params;
   const { fileName, caracterizacion_id, source, user_id } = req.body;
-  const finalUserId = user_id || 0; 
+  const finalUserId = user_id || 0;
+  
+  console.log(`[uploadFile] Iniciando upload para tabla: ${table_name}, record_id: ${record_id}`);
+  console.log(`[uploadFile] Datos recibidos:`, { fileName, caracterizacion_id, source, user_id });
+  console.log(`[uploadFile] Archivo recibido:`, req.file ? req.file.originalname : 'No file'); 
 
   try {
     // console.log('[uploadFile] Iniciando subida de archivo...');
@@ -1697,7 +1701,42 @@ exports.uploadFile = async (req, res) => {
         });
       }
       finalRecordId = caracterizacion_id;
-      gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${finalFileName}`;
+      
+      // Obtener información del usuario para crear la estructura de carpetas
+      let userInfo = null;
+      try {
+        const [user] = await sequelize.query(
+          `SELECT "Numero de identificacion", "Nombres", "Apellidos", "Priorizacion capitalizacion" FROM inscription_caracterizacion WHERE id = :caracterizacion_id`,
+          {
+            replacements: { caracterizacion_id },
+            type: sequelize.QueryTypes.SELECT,
+          }
+        );
+        userInfo = user;
+      } catch (userError) {
+        console.error('[uploadFile] Error obteniendo información del usuario:', userError);
+      }
+      
+      if (userInfo) {
+        const cedula = userInfo['Numero de identificacion'] || 'sin_cedula';
+        const nombres = userInfo['Nombres'] || '';
+        const apellidos = userInfo['Apellidos'] || '';
+        const nombreCompleto = `${nombres} ${apellidos}`.trim() || 'sin_nombre';
+        const grupo = userInfo['Priorizacion capitalizacion'] || 'Grupo1';
+        
+        // Determinar la carpeta según el tipo de documento
+        let subfolder = '';
+        if (table_name === 'pi_anexosv2') {
+          // Determinar si es visita 1 o visita 2 basado en el nombre del campo
+          const visita1Fields = ['acta_visita_verificacion', 'autorizacion_imagen', 'autorizacion_firma', 'registro_fotografico_1', 'plan_inversion', 'carta_compromiso'];
+          const isVisita1 = visita1Fields.some(field => finalFileName.startsWith(field));
+          subfolder = isVisita1 ? '2. Documentos Visita 1' : '3. Documentos Visita 2';
+        }
+        
+        gcsPath = `${cedula}_${nombreCompleto}/${subfolder}/${finalFileName}`;
+      } else {
+        gcsPath = `inscription_caracterizacion/${caracterizacion_id}/${finalFileName}`;
+      }
     } else if (table_name === 'inscription_caracterizacion' && recordInfo) {
       // Nueva estructura de carpetas para inscription_caracterizacion
       const cedula = recordInfo['Numero de identificacion'] || 'sin_cedula';
@@ -1714,11 +1753,11 @@ exports.uploadFile = async (req, res) => {
     // Sube el archivo temporal a GCS
     let publicUrl;
     try {
-      // console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
+      console.log('[uploadFile] Subiendo archivo a GCS:', req.file.path, '->', gcsPath);
       publicUrl = await uploadFileToGCS(req.file.path, gcsPath);
-      // console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
+      console.log('[uploadFile] Archivo subido a GCS. URL:', publicUrl);
     } catch (gcsError) {
-      // console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
+      console.error('[uploadFile] Error subiendo el archivo a GCS:', gcsError);
       return res.status(500).json({
         message: 'Error subiendo el archivo a Google Cloud Storage',
         error: gcsError.message || gcsError,
@@ -1742,6 +1781,46 @@ exports.uploadFile = async (req, res) => {
       source: source || 'unknown',
     });
     // console.log('[uploadFile] Registro guardado en la base de datos. ID:', newFile.id);
+
+    // Si es una tabla pi_ y se proporciona fieldName, actualizar el campo específico
+    if (table_name.startsWith('pi_') && req.body.fieldName) {
+      const fieldName = req.body.fieldName;
+      console.log(`[uploadFile] Actualizando campo ${fieldName} en tabla ${table_name} con URL: ${publicUrl}`);
+      
+      try {
+        // Actualizar el campo específico en la tabla pi_
+        const updateQuery = `
+          UPDATE "${table_name}"
+          SET "${fieldName}" = :fileUrl
+          WHERE id = :recordId
+        `;
+        
+        await sequelize.query(updateQuery, {
+          replacements: {
+            fileUrl: publicUrl,
+            recordId: record_id
+          },
+          type: sequelize.QueryTypes.UPDATE,
+        });
+        
+        console.log(`[uploadFile] Campo ${fieldName} actualizado exitosamente`);
+        
+        // Registrar en el historial la actualización del campo
+        await insertHistory(
+          table_name,
+          record_id,
+          finalUserId,
+          'update',
+          fieldName,
+          null,
+          publicUrl,
+          `Archivo subido y campo ${fieldName} actualizado: ${finalFileName}`
+        );
+      } catch (updateError) {
+        console.error('[uploadFile] Error actualizando campo en tabla pi_:', updateError);
+        // No fallar la operación completa, solo logear el error
+      }
+    }
 
     // Extraer formulacion_id del nombre del archivo si existe
     let formulacion_id = null;
@@ -1773,6 +1852,154 @@ exports.uploadFile = async (req, res) => {
     res.status(500).json({
       message: 'Error subiendo el archivo',
       error: error.message,
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// --------------------------- CONTROLADOR getSignedUrl ----------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.getSignedUrl = async (req, res) => {
+  const { filePath } = req.params;
+  
+  try {
+    console.log(`[getSignedUrl] Generando URL firmada para: ${filePath}`);
+    
+    // Decodificar el filePath
+    const decodedFilePath = decodeURIComponent(filePath);
+    
+    // Generar URL firmada
+    const signedUrl = await getSignedUrlFromGCS(decodedFilePath, 3600); // 1 hora de expiración
+    
+    if (!signedUrl) {
+      return res.status(404).json({
+        message: 'Archivo no encontrado o no se pudo generar URL firmada',
+        error: 'File not found'
+      });
+    }
+    
+    console.log(`[getSignedUrl] URL firmada generada exitosamente`);
+    
+    res.status(200).json({
+      message: 'URL firmada generada exitosamente',
+      signedUrl: signedUrl
+    });
+    
+  } catch (error) {
+    console.error('[getSignedUrl] Error generando URL firmada:', error);
+    res.status(500).json({
+      message: 'Error generando URL firmada',
+      error: error.message
+    });
+  }
+};
+
+// ----------------------------------------------------------------------------------------
+// --------------------------- CONTROLADOR deletePiFile ---------------------------------
+// ----------------------------------------------------------------------------------------
+
+exports.deletePiFile = async (req, res) => {
+  const { table_name, record_id, file_name } = req.params;
+  const { user_id, field_name } = req.body;
+  
+  try {
+    console.log(`[deletePiFile] Eliminando archivo: ${file_name} de tabla: ${table_name}`);
+    console.log(`[deletePiFile] Datos recibidos:`, { user_id, field_name });
+    
+    // Obtener el registro de la tabla pi_
+    const record = await sequelize.query(
+      `SELECT * FROM "${table_name}" WHERE id = :recordId`,
+      {
+        replacements: { recordId: record_id },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+    
+    if (!record || record.length === 0) {
+      return res.status(404).json({ message: 'Registro no encontrado' });
+    }
+    
+    const recordData = record[0];
+    
+    // Obtener la URL del archivo del campo específico
+    const fileUrl = recordData[field_name];
+    
+    if (!fileUrl) {
+      return res.status(404).json({ message: 'Archivo no encontrado en el registro' });
+    }
+    
+    console.log(`[deletePiFile] URL del archivo: ${fileUrl}`);
+    
+    // Extraer el path del archivo de la URL
+    let filePathInBucket = '';
+    if (fileUrl.startsWith('https://storage.googleapis.com/')) {
+      const urlParts = fileUrl.split('/');
+      filePathInBucket = urlParts.slice(4).join('/');
+    } else {
+      filePathInBucket = fileUrl;
+    }
+    
+    console.log(`[deletePiFile] Path del archivo en bucket: ${filePathInBucket}`);
+    
+    // Eliminar archivo de GCS
+    try {
+      const { Storage } = require('@google-cloud/storage');
+      const storage = new Storage({
+        keyFilename: process.env.GOOGLE_APPLICATION_CREDENTIALS,
+      });
+      const bucket = storage.bucket(process.env.GCS_BUCKET);
+      
+      const file = bucket.file(filePathInBucket);
+      const [exists] = await file.exists();
+      
+      if (exists) {
+        await file.delete();
+        console.log(`[deletePiFile] Archivo eliminado de GCS: ${filePathInBucket}`);
+      } else {
+        console.log(`[deletePiFile] Archivo no existe en GCS: ${filePathInBucket}`);
+      }
+    } catch (gcsError) {
+      console.error('[deletePiFile] Error eliminando archivo de GCS:', gcsError);
+      // Continuar con la limpieza del campo aunque falle la eliminación de GCS
+    }
+    
+    // Limpiar el campo en la tabla pi_
+    const updateQuery = `
+      UPDATE "${table_name}"
+      SET "${field_name}" = NULL
+      WHERE id = :recordId
+    `;
+    
+    await sequelize.query(updateQuery, {
+      replacements: { recordId: record_id },
+      type: sequelize.QueryTypes.UPDATE,
+    });
+    
+    console.log(`[deletePiFile] Campo ${field_name} limpiado en tabla ${table_name}`);
+    
+    // Registrar en el historial
+    await insertHistory(
+      table_name,
+      record_id,
+      user_id || 0,
+      'delete',
+      field_name,
+      fileUrl,
+      null,
+      `Archivo eliminado: ${file_name}`
+    );
+    
+    res.status(200).json({
+      message: 'Archivo eliminado exitosamente',
+      deletedFile: file_name
+    });
+    
+  } catch (error) {
+    console.error('[deletePiFile] Error eliminando archivo:', error);
+    res.status(500).json({
+      message: 'Error eliminando el archivo',
+      error: error.message
     });
   }
 };
