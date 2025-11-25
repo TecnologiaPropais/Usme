@@ -2703,7 +2703,29 @@ exports.createTableRecord = async (req, res) => {
             existingRecordId = existingRecords[0].id;
           }
         }
-      } else {
+      } 
+      // Caso pi_diagnostico_cap: busca por caracterizacion_id + Pregunta (cada pregunta debe ser un registro único)
+      else if (table_name === 'pi_diagnostico_cap') {
+        if (filteredData.caracterizacion_id && filteredData.Pregunta) {
+          const checkQuery = `
+            SELECT id FROM "${table_name}" 
+            WHERE caracterizacion_id = :caracterizacion_id 
+            AND TRIM("Pregunta") = TRIM(:pregunta)
+          `;
+          const existingRecords = await sequelize.query(checkQuery, {
+            replacements: {
+              caracterizacion_id: filteredData.caracterizacion_id,
+              pregunta: filteredData.Pregunta
+            },
+            type: sequelize.QueryTypes.SELECT,
+          });
+
+          if (existingRecords && existingRecords.length > 0) {
+            existingRecordId = existingRecords[0].id;
+          }
+        }
+      } 
+      else {
         // Para el resto de tablas pi_ => busca por caracterizacion_id
         if (filteredData.caracterizacion_id) {
           const checkQuery = `
@@ -3033,6 +3055,32 @@ exports.createNewRecord = async (req, res) => {
 
     // Crear el registro en la tabla
     const newRecord = await Table.create(recordData);
+
+    // Enviar correo de confirmación de inscripción
+    try {
+      const correoElectronico = newRecord['Correo electronico'] || recordData['Correo electronico'];
+      const nombres = newRecord['Nombres'] || recordData['Nombres'] || '';
+      const apellidos = newRecord['Apellidos'] || recordData['Apellidos'] || '';
+      const nombrePersona = `${nombres} ${apellidos}`.trim() || 'Ciudadan@';
+
+      if (correoElectronico) {
+        // Plantilla del correo de confirmación de inscripción
+        const cuerpoCorreo = `Respetado Ciudadan@ ${nombrePersona}
+
+Queremos agradecer su interés en hacer parte del programa nos permitimos informarle que la inscripción de los datos del emprendimiento y del emprendedor(a) se han realizado correctamente. Su inscripción quedo registrada satisfactoriamente.`;
+
+        await enviarCorreo({
+          to: correoElectronico,
+          subject: 'Confirmación de Inscripción - Programa Impulso Local',
+          text: cuerpoCorreo
+        });
+
+        console.log(`Correo de confirmación de inscripción enviado a ${correoElectronico} para registro ID ${newRecord.id}`);
+      }
+    } catch (emailError) {
+      console.error('Error enviando correo de confirmación de inscripción:', emailError);
+      // No fallar la creación del registro si el correo falla
+    }
 
     // Devolver la respuesta con el 'id' del nuevo registro creado
     res.status(201).json({
