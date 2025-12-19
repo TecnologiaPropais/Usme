@@ -43,9 +43,9 @@ export default function DatosTab({ id }) {
         );
         setFields(fieldsResponse.data);
 
-        // Obtener registro existente filtrado por caracterizacion_id
+        // Obtener registro existente filtrado por caracterizacion_id (usando ruta PI)
         const recordsResponse = await axios.get(
-          `${config.urls.inscriptions.base}/tables/${tableName}/records?caracterizacion_id=${id}`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -86,10 +86,18 @@ export default function DatosTab({ id }) {
 
       const recordData = { ...data, caracterizacion_id: id };
 
+      // Asegurar que user_id esté presente para el historial
+      const userId = localStorage.getItem('id');
+      if (!userId) {
+        alert('No se encontró el ID de usuario');
+        return;
+      }
+      recordData.user_id = userId;
+
       if (recordId) {
-        // Actualizar registro existente
+        // Actualizar registro existente (usando ruta PI)
         await axios.put(
-          `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record/${recordId}`,
           recordData,
           {
             headers: {
@@ -99,15 +107,9 @@ export default function DatosTab({ id }) {
         );
         alert('Datos actualizados exitosamente');
       } else {
-        // Crear nuevo registro
-        // Si el controlador espera 'user_id', usar user_id:
-        const userId = localStorage.getItem('id');
-        recordData.user_id = userId; // Si el backend espera user_id
-        // Si el backend espera 'id', entonces usa:
-        // recordData.id = userId;
-
+        // Crear nuevo registro (usando ruta PI)
         await axios.post(
-          `${config.urls.inscriptions.base}/tables/${tableName}/record`,
+          `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
           recordData,
           {
             headers: {
@@ -119,7 +121,12 @@ export default function DatosTab({ id }) {
       }
     } catch (error) {
       console.error('Error guardando los datos:', error);
-      setError('Error guardando los datos');
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || error.message 
+        || 'Error desconocido al guardar los datos';
+      setError(`Error guardando los datos: ${errorMessage}`);
+      alert(`Error al guardar los datos:\n${errorMessage}`);
     }
   };
 
@@ -130,7 +137,7 @@ export default function DatosTab({ id }) {
     try {
       const token = localStorage.getItem('token');
       const historyResponse = await axios.get(
-        `${config.urls.inscriptions.base}/tables/${tableName}/record/${recordId}/history`,
+        `${config.urls.inscriptions.pi}/tables/${tableName}/record/${recordId}/history`,
         {
           headers: {
             Authorization: `Bearer ${token}`,

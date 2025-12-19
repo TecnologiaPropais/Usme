@@ -238,4 +238,22 @@ input[type=number] {
   width: 150px;
   min-width: 80px;
   text-align: center;
+}
+
+/* Estilos para tabs deshabilitadas */
+.plan-de-inversion-tabs-sidebar .nav-item.disabled .nav-link.disabled-link {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+  pointer-events: auto; /* Permitir el evento para mostrar el alert */
+  color: #6c757d !important;
+  background-color: #f8f9fa !important;
+}
+
+.plan-de-inversion-tabs-sidebar .nav-item.disabled .nav-link.disabled-link:hover {
+  background-color: #f8f9fa !important;
+  color: #6c757d !important;
+}
+
+.plan-de-inversion-tabs-sidebar .nav-item.disabled .nav-link.disabled-link i.fa-lock {
+  color: #6c757d;
 } 

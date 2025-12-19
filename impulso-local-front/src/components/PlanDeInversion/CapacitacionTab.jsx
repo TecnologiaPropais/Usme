@@ -193,7 +193,7 @@ export default function CapacitacionTab({ id }) {
           <ul className="list-group mb-3 tabla-moderna">
             {recommendedCodes.map((code) => {
               const columnName = codeToText[code];
-              const value = record[columnName] || false;
+              const value = record ? (record[columnName] || false) : false;
               return (
                 <li
                   key={code}

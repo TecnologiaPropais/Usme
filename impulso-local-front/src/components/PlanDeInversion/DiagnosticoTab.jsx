@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import axios from "axios";
 import config from '../../config';
 
-export default function DiagnosticoTab({ id }) {
+export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
   const initialQuestions = [
     {
       component: "Conectándome con mi negocio",
@@ -121,6 +121,7 @@ export default function DiagnosticoTab({ id }) {
   const [answers, setAnswers] = useState({});
   const [recordIds, setRecordIds] = useState({});
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   // Historial
   const [history, setHistory] = useState([]);
@@ -202,23 +203,80 @@ export default function DiagnosticoTab({ id }) {
 
   // Guardar Diagnóstico y recommended_codes
   const handleSubmit = async () => {
+    if (saving) {
+      return;
+    }
+
+    // Validar que todas las preguntas tengan respuesta
+    const unansweredQuestions = [];
+    for (const section of initialQuestions) {
+      for (const question of section.questions) {
+        const questionText = question.text.trim();
+        if (answers[questionText] === undefined) {
+          unansweredQuestions.push(questionText);
+        }
+      }
+    }
+
+    if (unansweredQuestions.length > 0) {
+      const message = `Por favor responde todas las preguntas antes de guardar.\n\nPreguntas sin responder (${unansweredQuestions.length}):\n${unansweredQuestions.slice(0, 5).join('\n')}${unansweredQuestions.length > 5 ? `\n... y ${unansweredQuestions.length - 5} más` : ''}`;
+      alert(message);
+      return;
+    }
+
+    setSaving(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
         alert("No se encontró el token de autenticación");
+        setSaving(false);
         return;
       }
       const userId = localStorage.getItem("id");
-      const requestPromises = [];
-      const newRecordIds = { ...recordIds };
+      if (!userId) {
+        alert("No se encontró el ID de usuario");
+        setSaving(false);
+        return;
+      }
+      if (!id) {
+        alert("No se encontró el ID de caracterización");
+        setSaving(false);
+        return;
+      }
 
-      // 1) Guardar/actualizar Diagnóstico (pi_diagnostico_cap)
+      const newRecordIds = { ...recordIds };
+      const errors = [];
+      const savedResults = [];
+
+      // 1) Primero, obtener todos los registros existentes para esta caracterización
+      let existingRecords = [];
+      try {
+        const existingResponse = await axios.get(
+          `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        existingRecords = existingResponse.data || [];
+        
+        // Mapear registros existentes por pregunta
+        existingRecords.forEach(record => {
+          const pregunta = record.Pregunta?.trim();
+          if (pregunta && record.id) {
+            newRecordIds[pregunta] = record.id;
+          }
+        });
+      } catch (error) {
+        // Error obteniendo registros existentes, continuar con creación
+      }
+
+      // 2) Guardar/actualizar Diagnóstico (pi_diagnostico_cap) - EN PARALELO
+      // Preparar todas las peticiones
+      const requestPromises = [];
+      const questionsToSave = [];
+      
       for (const section of initialQuestions) {
         for (const question of section.questions) {
-          const currentAnswer =
-            answers[question.text.trim()] === undefined
-              ? false
-              : answers[question.text.trim()];
+          const questionText = question.text.trim();
+          const currentAnswer = answers[questionText];
 
           const requestData = {
             caracterizacion_id: id,
@@ -235,30 +293,86 @@ export default function DiagnosticoTab({ id }) {
             user_id: userId,
           };
 
-          if (newRecordIds[question.text.trim()]) {
-            // update
-            const updatePromise = axios.put(
-              `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record/${newRecordIds[question.text.trim()]}`,
-              requestData,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            requestPromises.push(updatePromise);
-          } else {
-            // create
-            const createPromise = axios
-              .post(
-                `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record`,
-                requestData,
-                { headers: { Authorization: `Bearer ${token}` } }
-              )
-              .then((response) => {
-                newRecordIds[question.text.trim()] = response.data.id;
-              });
-            requestPromises.push(createPromise);
-          }
+          const questionKey = question.text.trim();
+          const recordId = newRecordIds[questionKey];
+          const isUpdate = !!recordId;
+          const url = isUpdate
+            ? `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record/${recordId}`
+            : `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/record`;
+
+          questionsToSave.push({ questionKey, isUpdate, recordId, url, requestData });
         }
       }
-      await Promise.all(requestPromises);
+
+      // Crear todas las peticiones en paralelo
+      requestPromises.push(...questionsToSave.map(({ questionKey, isUpdate, recordId, url, requestData }) => {
+        return (async () => {
+          try {
+            let response;
+            if (isUpdate) {
+              response = await axios.put(url, requestData, { headers: { Authorization: `Bearer ${token}` } });
+            } else {
+              response = await axios.post(url, requestData, { headers: { Authorization: `Bearer ${token}` } });
+            }
+
+            const responseId = response.data?.record?.id || response.data?.id;
+            if (responseId) {
+              return { success: true, question: questionKey, data: response.data, id: responseId };
+            } else {
+              throw new Error('No se recibió ID en la respuesta');
+            }
+          } catch (error) {
+            throw { question: questionKey, error: error.response?.data || error.message, type: isUpdate ? 'update' : 'create' };
+          }
+        })();
+      }));
+
+      // Ejecutar todas las peticiones en paralelo
+      const results = await Promise.allSettled(requestPromises);
+      
+      // Procesar resultados
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const { questionKey } = questionsToSave[i];
+        
+        if (result.status === 'fulfilled') {
+          const responseId = result.value.id;
+          newRecordIds[questionKey] = responseId;
+          savedResults.push(result.value);
+        } else {
+          errors.push(result.reason);
+        }
+      }
+      
+      // Verificar si hubo errores
+      const failedRequests = results.filter(r => r.status === 'rejected');
+      if (failedRequests.length > 0) {
+        const errorMessages = failedRequests.map(r => r.reason?.response?.data?.message || r.reason?.message || 'Error desconocido').join('\n');
+        alert(`Error al guardar algunos registros:\n${errorMessages}`);
+        setSaving(false);
+        return;
+      }
+
+      // Verificar en el servidor qué se guardó realmente
+      const totalQuestions = initialQuestions.reduce((sum, section) => sum + section.questions.length, 0);
+      let serverRecordsCount = 0;
+      try {
+        const verifyResponse = await axios.get(
+          `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const savedRecords = verifyResponse.data || [];
+        serverRecordsCount = savedRecords.length;
+        
+        if (serverRecordsCount < totalQuestions) {
+          alert(`⚠️ Advertencia: Solo se guardaron ${serverRecordsCount} de ${totalQuestions} preguntas en la base de datos.\n\nPor favor, intenta guardar nuevamente. Si el problema persiste, contacta al administrador.`);
+          setSaving(false);
+          return;
+        }
+      } catch (verifyError) {
+        // Error verificando, continuar
+      }
+
       setRecordIds(newRecordIds);
 
       // 2) Calcular los códigos recomendados (puntaje = 0)
@@ -280,21 +394,38 @@ export default function DiagnosticoTab({ id }) {
       }
 
       // 3) Guardar recommended_codes en pi_capacitacion (como texto JSON)
-      await upsertRecommendedCodes(token, id, userId, triggeredCodes);
+      try {
+        await upsertRecommendedCodes(token, id, userId, triggeredCodes);
+      } catch (error) {
+        // Error guardando códigos recomendados (no crítico), continuar
+      }
 
       alert("Diagnóstico guardado exitosamente");
+      
+      // Llamar callback si existe para notificar que se guardó el diagnóstico
+      if (onDiagnosticoSaved) {
+        onDiagnosticoSaved();
+      }
     } catch (error) {
-      console.error("Error guardando el diagnóstico:", error);
-      alert("Hubo un error al guardar el diagnóstico");
+      const errorMessage = error.response?.data?.message 
+        || error.response?.data?.error 
+        || error.message 
+        || "Error desconocido al guardar el diagnóstico";
+      
+      alert(`Error al guardar el diagnóstico:\n${errorMessage}`);
+    } finally {
+      setSaving(false);
     }
   };
 
   // upsert recommended_codes
   const upsertRecommendedCodes = async (token, caracterizacion_id, userId, codesArray) => {
     try {
+      const url = `${config.urls.inscriptions.pi}/tables/pi_capacitacion/records?caracterizacion_id=${caracterizacion_id}`;
+      
       // Buscar si hay registro en pi_capacitacion
       const resGet = await axios.get(
-        `${config.urls.inscriptions.pi}/tables/pi_capacitacion/records?caracterizacion_id=${caracterizacion_id}`,
+        url,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
@@ -307,8 +438,10 @@ export default function DiagnosticoTab({ id }) {
           user_id: userId,
           recommended_codes: codesString,
         };
+        const createUrl = `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record`;
+        
         await axios.post(
-          `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record`,
+          createUrl,
           newRecord,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -316,19 +449,22 @@ export default function DiagnosticoTab({ id }) {
         // actualizar
         const existing = resGet.data[0];
         const recordId = existing.id;
+        
         const updatedRecord = {
           ...existing,
           user_id: userId,
           recommended_codes: codesString,
         };
+        const updateUrl = `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record/${recordId}`;
+        
         await axios.put(
-          `${config.urls.inscriptions.pi}/tables/pi_capacitacion/record/${recordId}`,
+          updateUrl,
           updatedRecord,
           { headers: { Authorization: `Bearer ${token}` } }
         );
       }
     } catch (error) {
-      console.error("Error en upsertRecommendedCodes:", error);
+      throw error;
     }
   };
 
@@ -400,35 +536,49 @@ export default function DiagnosticoTab({ id }) {
             <tbody>
               {initialQuestions.map((section) => (
                 <React.Fragment key={section.component}>
-                  {section.questions.map((question, index) => (
-                    <tr key={question.text}>
-                      {index === 0 && (
-                        <td rowSpan={section.questions.length}>
-                          {section.component}
+                  {section.questions.map((question, index) => {
+                    const questionText = question.text.trim();
+                    const isAnswered = answers[questionText] !== undefined;
+                    return (
+                      <tr 
+                        key={question.text}
+                        style={!isAnswered ? { backgroundColor: '#fff3cd' } : {}}
+                      >
+                        {index === 0 && (
+                          <td rowSpan={section.questions.length}>
+                            {section.component}
+                          </td>
+                        )}
+                        <td>
+                          {question.text}
+                          {!isAnswered && (
+                            <span style={{ color: '#856404', marginLeft: '8px', fontSize: '0.9em' }}>
+                              ⚠️ Sin responder
+                            </span>
+                          )}
                         </td>
-                      )}
-                      <td>{question.text}</td>
-                      <td className="td-radio">
-                        <input
-                          type="radio"
-                          name={question.text}
-                          checked={answers[question.text.trim()] === true}
-                          onChange={() => handleAnswerChange(question.text, true)}
-                          disabled={localStorage.getItem('role_id') === '3'}
-                        />
-                      </td>
-                      <td className="td-radio">
-                        <input
-                          type="radio"
-                          name={question.text}
-                          checked={answers[question.text.trim()] === false}
-                          onChange={() => handleAnswerChange(question.text, false)}
-                          disabled={localStorage.getItem('role_id') === '3'}
-                        />
-                      </td>
-                      <td className="td-puntaje">{getScoreFromState(question)}</td>
-                    </tr>
-                  ))}
+                        <td className="td-radio">
+                          <input
+                            type="radio"
+                            name={question.text}
+                            checked={answers[questionText] === true}
+                            onChange={() => handleAnswerChange(question.text, true)}
+                            disabled={localStorage.getItem('role_id') === '3'}
+                          />
+                        </td>
+                        <td className="td-radio">
+                          <input
+                            type="radio"
+                            name={question.text}
+                            checked={answers[questionText] === false}
+                            onChange={() => handleAnswerChange(question.text, false)}
+                            disabled={localStorage.getItem('role_id') === '3'}
+                          />
+                        </td>
+                        <td className="td-puntaje">{getScoreFromState(question)}</td>
+                      </tr>
+                    );
+                  })}
                   <tr>
                     <td colSpan="4" className="text-end">
                       Promedio del componente:
@@ -440,8 +590,19 @@ export default function DiagnosticoTab({ id }) {
             </tbody>
           </table>
           {localStorage.getItem('role_id') !== '3' && (
-            <button className="btn btn-primary btn-diagnostico" onClick={handleSubmit}>
-              Guardar
+            <button 
+              className="btn btn-primary btn-diagnostico" 
+              onClick={handleSubmit}
+              disabled={saving}
+            >
+              {saving ? (
+                <>
+                  <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                  Guardando...
+                </>
+              ) : (
+                'Guardar'
+              )}
             </button>
           )}
 
@@ -548,5 +709,6 @@ export default function DiagnosticoTab({ id }) {
 
 DiagnosticoTab.propTypes = {
   id: PropTypes.string.isRequired,
+  onDiagnosticoSaved: PropTypes.func,
 };
 

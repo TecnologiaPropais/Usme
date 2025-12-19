@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import config from '../../config';
 
 // Ruta de la imagen del banner en la carpeta public
-const bannerImagePath = '/impulso-local-banner-pdf.jpeg';
+const bannerImagePath = '/impulso-local-banner-pdf.png';
 
 export default function GenerarFichaTab({ id }) {
   // Estados para almacenar los datos obtenidos de la API

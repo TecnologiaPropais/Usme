@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import axios from 'axios';
+import config from '../config';
 import DatosTab from './PlanDeInversion/DatosTab';
 import DiagnosticoTab from './PlanDeInversion/DiagnosticoTab';
 import PropuestaMejoraTab from './PlanDeInversion/PropuestaMejoraTab'; // Nuevo componente
@@ -18,6 +20,39 @@ import './PlanDeInversion/PlanDeInversion.css'; // Archivo CSS para estilos pers
 export default function PlanDeInversion() {
   const { id } = useParams(); // ID del registro de caracterización
   const [activeTab, setActiveTab] = useState('Datos');
+  const [hasDiagnostico, setHasDiagnostico] = useState(false);
+  const [checkingDiagnostico, setCheckingDiagnostico] = useState(true);
+
+  // Verificar si existe un diagnóstico realizado
+  useEffect(() => {
+    const checkDiagnostico = async () => {
+      setCheckingDiagnostico(true);
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setCheckingDiagnostico(false);
+          return;
+        }
+
+        const response = await axios.get(
+          `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        // Si hay al menos un registro, existe diagnóstico
+        setHasDiagnostico(response.data && response.data.length > 0);
+      } catch (error) {
+        console.error("Error verificando diagnóstico:", error);
+        setHasDiagnostico(false);
+      } finally {
+        setCheckingDiagnostico(false);
+      }
+    };
+
+    if (id) {
+      checkDiagnostico();
+    }
+  }, [id]);
 
   return (
     <div className="content-wrapper">
@@ -64,16 +99,22 @@ export default function PlanDeInversion() {
                   <i className="fas fa-stethoscope"></i> Diagnóstico
                 </a>
               </li>
-              <li className={`nav-item ${activeTab === 'Capacitacion' ? 'active' : ''}`}>
+              <li className={`nav-item ${activeTab === 'Capacitacion' ? 'active' : ''} ${!hasDiagnostico ? 'disabled' : ''}`}>
                 <a
                   href="#"
-                  className="nav-link"
+                  className={`nav-link ${!hasDiagnostico ? 'disabled-link' : ''}`}
                   onClick={(e) => {
                     e.preventDefault();
-                    setActiveTab('Capacitacion');
+                    if (hasDiagnostico) {
+                      setActiveTab('Capacitacion');
+                    } else {
+                      alert('Debe completar el Diagnóstico antes de acceder a Capacitación');
+                    }
                   }}
+                  title={!hasDiagnostico ? 'Complete el Diagnóstico para habilitar esta sección' : ''}
                 >
                   <i className="fas fa-chalkboard-teacher"></i> Capacitación
+                  {!hasDiagnostico && <i className="fas fa-lock ml-2" style={{ fontSize: '0.8em', marginLeft: '8px' }}></i>}
                 </a>
               </li>
               <li className={`nav-item ${activeTab === 'Validaciones' ? 'active' : ''}`}>
@@ -124,7 +165,7 @@ export default function PlanDeInversion() {
                   <i className="fas fa-credit-card"></i> Información Bancaria
                 </a>
               </li>*/}
-              <li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
+              {/*<li className={`nav-item ${activeTab === 'Anexos' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -133,9 +174,9 @@ export default function PlanDeInversion() {
                     setActiveTab('Anexos');
                   }}
                 >
-                  <i className="fas fa-paperclip"></i> Anexos
+                  <i className="fas fa-paperclip"></i> Anexos V1
                 </a>
-              </li>
+              </li>*/}
               <li className={`nav-item ${activeTab === 'AnexosV2' ? 'active' : ''}`}>
                 <a
                   href="#"
@@ -145,7 +186,7 @@ export default function PlanDeInversion() {
                     setActiveTab('AnexosV2');
                   }}
                 >
-                  <i className="fas fa-file-upload"></i> Anexos V2
+                  <i className="fas fa-file-upload"></i> Anexos
                 </a>
               </li>
               {/*<li className={`nav-item ${activeTab === 'Ejecucion' ? 'active' : ''}`}>
@@ -191,13 +232,42 @@ export default function PlanDeInversion() {
           <div className="plan-de-inversion-tab-content">
             {activeTab === 'Datos' && <DatosTab id={id} />}
             {activeTab === 'PropuestaMejora' && <PropuestaMejoraTab id={id} />}
-            {activeTab === 'Diagnostico' && <DiagnosticoTab id={id} />}
-            {activeTab === 'Capacitacion' && <CapacitacionTab id={id} />}
+            {activeTab === 'Diagnostico' && <DiagnosticoTab id={id} onDiagnosticoSaved={() => {
+              // Recargar verificación de diagnóstico cuando se guarda
+              const checkDiagnostico = async () => {
+                try {
+                  const token = localStorage.getItem("token");
+                  if (token) {
+                    const response = await axios.get(
+                      `${config.urls.inscriptions.pi}/tables/pi_diagnostico_cap/records?caracterizacion_id=${id}`,
+                      { headers: { Authorization: `Bearer ${token}` } }
+                    );
+                    setHasDiagnostico(response.data && response.data.length > 0);
+                  }
+                } catch (error) {
+                  console.error("Error verificando diagnóstico:", error);
+                }
+              };
+              checkDiagnostico();
+            }} />}
+            {activeTab === 'Capacitacion' && hasDiagnostico && <CapacitacionTab id={id} />}
+            {activeTab === 'Capacitacion' && !hasDiagnostico && (
+              <div className="alert alert-warning">
+                <h5>Capacitación no disponible</h5>
+                <p>Debe completar el Diagnóstico antes de acceder a la sección de Capacitación.</p>
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => setActiveTab('Diagnostico')}
+                >
+                  Ir a Diagnóstico
+                </button>
+              </div>
+            )}
             {activeTab === 'Validaciones' && <ValidacionesTab id={id} />}
             {/* {activeTab === 'Formulacion' && <FormulacionTab id={id} />} */}
             {activeTab === 'FormulacionProv' && <FormulacionProvTab id={id} />}
             {activeTab === 'InfoBancaria' && <InfoBancariaTab id={id} />}
-            {activeTab === 'Anexos' && <AnexosTab id={id} />}
+            {/* {activeTab === 'Anexos' && <AnexosTab id={id} />} */}
             {activeTab === 'AnexosV2' && <AnexosV2Tab id={id} />}
             {activeTab === 'Ejecucion' && <EjecucionTab id={id} />}
             {activeTab === 'EncuestaSalida' && <EncuestaSalidaTab id={id} />}
