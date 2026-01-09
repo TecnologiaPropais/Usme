@@ -70,6 +70,16 @@ export default function DynamicRecordEdit() {
   const [editandoPriorizacion, setEditandoPriorizacion] = useState(false);
   const [valorPriorizacion, setValorPriorizacion] = useState('');
 
+  // Opciones de categoría
+  const categoriaOptions = [
+    'Emprendimientos culturales y creativos apoyados',
+    'Emprendimientos con proceso de reconversión hacia actividades sostenibles',
+    'Emprendimientos la transformación empresarial y/o productiva',
+    'Emprendimientos potencializados dentro de las aglomeraciones económicas que fomentan el empleo y/o nuevas actividades económicas'
+  ];
+  const [editandoCategoria, setEditandoCategoria] = useState(false);
+  const [valorCategoria, setValorCategoria] = useState('');
+
   const getLoggedUserRoleId = () => {
     return localStorage.getItem('role_id') || null;
   };
@@ -312,6 +322,9 @@ export default function DynamicRecordEdit() {
     if (record && record['Priorizacion capitalizacion']) {
       setValorPriorizacion(record['Priorizacion capitalizacion']);
     }
+    if (record && record['Categoria']) {
+      setValorCategoria(record['Categoria']);
+    }
   }, [record]);
 
   const handleChange = (e) => {
@@ -531,6 +544,25 @@ export default function DynamicRecordEdit() {
       setEditandoPriorizacion(false);
     } catch (error) {
       setError('Error guardando la priorización');
+    }
+  };
+
+  const handleGuardarCategoria = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${config.urls.tables}/${tableName}/record/${recordId}`,
+        { ...record, 'Categoria': valorCategoria },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setRecord({ ...record, 'Categoria': valorCategoria });
+      setEditandoCategoria(false);
+    } catch (error) {
+      setError('Error guardando la categoría');
     }
   };
 
@@ -803,8 +835,8 @@ export default function DynamicRecordEdit() {
               <div className={isPrimaryTable ? 'col-md-8' : 'col-md-12'}>
                 <form onSubmit={handleSubmit}>
                   {fields.map((field) => (
-                    // Ocultar el campo "Priorización capitalización" ya que se maneja en el cuadro superior derecho
-                    field.column_name === 'Priorizacion capitalizacion' ? null : (
+                    // Ocultar el campo "Priorización capitalización" y "Categoria" ya que se manejan en los cuadros superiores derechos
+                    (field.column_name === 'Priorizacion capitalizacion' || field.column_name === 'Categoria') ? null : (
                     <div className="form-group" key={field.column_name}>
                       <label>{field.column_name}</label>
                       {field.column_name === 'id' ? (
@@ -1018,6 +1050,63 @@ export default function DynamicRecordEdit() {
                         ))}
                         {role !== '3' && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
+                            Editar
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+
+                  {/* Cuadro de Categoría */}
+                  <div
+                    className="mt-4"
+                    style={{
+                      width: '100%',
+                      background: '#fff',
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.07)',
+                      padding: '18px 20px',
+                      marginBottom: '16px',
+                      border: '1px solid #e0e0e0',
+                    }}
+                  >
+                    <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 12 }}>
+                      Categoria
+                    </div>
+                    {editandoCategoria ? (
+                      <>
+                        <select
+                          className="form-control mb-2"
+                          value={valorCategoria}
+                          onChange={e => setValorCategoria(e.target.value)}
+                        >
+                          <option value="">-- Selecciona una opción --</option>
+                          {categoriaOptions.map(opt => (
+                            <option key={opt} value={opt}>{opt}</option>
+                          ))}
+                        </select>
+                        <button className="btn btn-success btn-sm mr-2" onClick={handleGuardarCategoria}>
+                          Guardar
+                        </button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => setEditandoCategoria(false)}>
+                          Cancelar
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {categoriaOptions.map(opt => (
+                          <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
+                            <span>{opt}</span>
+                            <span style={{ flex: 1 }}></span>
+                            {valorCategoria === opt ? (
+                              <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
+                            ) : (
+                              <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
+                            )}
+                          </div>
+                        ))}
+                        {role !== '3' && (
+                          <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoCategoria(true)}>
                             Editar
                           </button>
                         )}
