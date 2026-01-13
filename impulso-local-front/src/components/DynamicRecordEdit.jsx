@@ -320,10 +320,14 @@ export default function DynamicRecordEdit() {
 
   useEffect(() => {
     if (record && record['Priorizacion capitalizacion']) {
-      setValorPriorizacion(record['Priorizacion capitalizacion']);
+      setValorPriorizacion(String(record['Priorizacion capitalizacion']).trim());
+    } else {
+      setValorPriorizacion('');
     }
     if (record && record['Categoria']) {
-      setValorCategoria(record['Categoria']);
+      setValorCategoria(String(record['Categoria']).trim());
+    } else {
+      setValorCategoria('');
     }
   }, [record]);
 
@@ -550,16 +554,18 @@ export default function DynamicRecordEdit() {
   const handleGuardarCategoria = async () => {
     try {
       const token = localStorage.getItem('token');
+      const categoriaValue = valorCategoria ? valorCategoria.trim() : '';
       await axios.put(
         `${config.urls.tables}/${tableName}/record/${recordId}`,
-        { ...record, 'Categoria': valorCategoria },
+        { ...record, 'Categoria': categoriaValue },
         {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }
       );
-      setRecord({ ...record, 'Categoria': valorCategoria });
+      setRecord({ ...record, 'Categoria': categoriaValue });
+      setValorCategoria(categoriaValue);
       setEditandoCategoria(false);
     } catch (error) {
       setError('Error guardando la categoría');
@@ -1037,17 +1043,20 @@ export default function DynamicRecordEdit() {
                       </>
                     ) : (
                       <>
-                        {priorizacionOptions.map(opt => (
-                          <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
-                            <span>{opt}</span>
-                            <span style={{ flex: 1 }}></span>
-                            {valorPriorizacion === opt ? (
-                              <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
-                            ) : (
-                              <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
-                            )}
-                          </div>
-                        ))}
+                        {priorizacionOptions.map(opt => {
+                          const isSelected = valorPriorizacion && valorPriorizacion.trim() === opt.trim();
+                          return (
+                            <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
+                              <span>{opt}</span>
+                              <span style={{ flex: 1 }}></span>
+                              {isSelected ? (
+                                <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
+                              ) : (
+                                <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
+                              )}
+                            </div>
+                          );
+                        })}
                         {role !== '3' && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
                             Editar
@@ -1094,17 +1103,20 @@ export default function DynamicRecordEdit() {
                       </>
                     ) : (
                       <>
-                        {categoriaOptions.map(opt => (
-                          <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
-                            <span>{opt}</span>
-                            <span style={{ flex: 1 }}></span>
-                            {valorCategoria === opt ? (
-                              <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
-                            ) : (
-                              <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
-                            )}
-                          </div>
-                        ))}
+                        {categoriaOptions.map(opt => {
+                          const isSelected = valorCategoria && valorCategoria.trim() === opt.trim();
+                          return (
+                            <div key={opt} style={{ display: 'flex', alignItems: 'center', marginBottom: 8, fontSize: 15 }}>
+                              <span>{opt}</span>
+                              <span style={{ flex: 1 }}></span>
+                              {isSelected ? (
+                                <span style={{ color: '#22c55e', fontSize: 18, marginLeft: 8 }}>&#10003;</span>
+                              ) : (
+                                <span style={{ color: '#b0b0b0', fontSize: 18, marginLeft: 8 }}>&#10007;</span>
+                              )}
+                            </div>
+                          );
+                        })}
                         {role !== '3' && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoCategoria(true)}>
                             Editar
