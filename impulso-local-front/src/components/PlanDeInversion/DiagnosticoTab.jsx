@@ -6,39 +6,6 @@ import config from '../../config';
 export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
   const initialQuestions = [
     {
-      component: "Conectándome con mi negocio",
-      questions: [
-        {
-          text: "¿Están separadas sus finanzas personales de las de su negocio?",
-          field: "finanzas_separadas",
-        },
-        {
-          text: "¿Lleva registros de ingresos y gastos de su empresa periódicamente?",
-          field: "registros_ingresos_gastos",
-        },
-        {
-          text: "¿Ha calculado y registrado sus costos de producción, ventas y administración?",
-          field: "costos_registrados",
-        },
-        {
-          text: "¿Los ingresos por ventas alcanzan a cubrir sus gastos y costos operativos?",
-          field: "ingresos_cubren_costos",
-        },
-        {
-          text: "¿Cuenta con el inventario suficiente de productos para atender la demanda de sus clientes?",
-          field: "inventario_suficiente",
-        },
-        {
-          text: "¿Maneja un control de inventarios para los bienes que comercializa o productos que fabrica incluyendo sus materias primas e insumos?",
-          field: "control_inventarios",
-        },
-        {
-          text: "¿Considera que debe fortalecer las habilidades para el manejo del talento humano en su empresa?",
-          field: "fortalecer_talento_humano",
-        },
-      ],
-    },
-    {
       component: "Conectándome con mi mercado",
       questions: [
         {
@@ -63,28 +30,14 @@ export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
       component: "Conexiones digitales",
       questions: [
         { text: "¿Ha realizado ventas por internet?", field: "ventas_internet" },
-        {
-          text: "¿Conoce cómo desarrollar la venta de sus productos/servicios por internet?",
-          field: "desarrollo_ventas_online",
-        },
-        { text: "¿Cuenta con equipos de cómputo?", field: "equipos_computo" },
-        { text: "¿Cuenta con página web?", field: "pagina_web" },
-        { text: "¿Cuenta con red social Facebook?", field: "facebook" },
-        { text: "¿Cuenta con red social Instagram?", field: "instagram" },
-        { text: "¿Cuenta con red social TikTok?", field: "tiktok" },
+        { text: "¿Utiliza Whatsapp Business?", field: "whatsapp_business" },
+        { text: "¿Cuenta con Red social Facebook?", field: "facebook" },
+        { text: "¿Cuenta con Red social Instagram?", field: "instagram" },
+        { text: "¿Cuenta con Red social TiKToK?", field: "tiktok" },
       ],
     },
     {
-      component: "Alístate para crecer",
-      questions: [
-        {
-          text: "¿Su empresa cuenta con acceso a créditos o servicios financieros para su apalancamiento?",
-          field: "acceso_creditos",
-        },
-      ],
-    },
-    {
-      component: "Conectándome con el ambiente",
+      component: "Tu empresa, tu apuesta verde",
       questions: [
         {
           text: "¿Su empresa aplica medidas con enfoque ambiental: ejemplo ahorro de agua, energía, recuperación de residuos, reutilización de desechos, etc.?",
@@ -92,30 +45,95 @@ export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
         },
       ],
     },
+    {
+      component: "Transición a la sostenibilidad",
+      questions: [
+        {
+          text: "¿Su negocio aplica acciones concretas para reducir la generación de residuos en sus procesos productivos o comerciales?",
+          field: "reduccion_residuos",
+        },
+        {
+          text: "¿Ha evaluado oportunidades para transformar residuos en nuevos productos o fuentes de ingreso?",
+          field: "transformacion_residuos",
+        },
+      ],
+    },
+    {
+      component: "Alístate para crecer: formalizando mi negocio",
+      questions: [
+        {
+          text: "¿Su negocio cuenta con  registros empresariales obligatorios vigentes (Cámara de Comercio, RUT, etc.)?",
+          field: "registros_empresariales",
+        },
+        {
+          text: "¿Conoce los beneficios concretos que la formalización puede traerle para acceder a créditos, programas o alianzas?",
+          field: "beneficios_formalizacion",
+        },
+      ],
+    },
+    {
+      component: "Conectándome con mis finanzas",
+      questions: [
+        {
+          text: "¿Registra de manera organizada todas las ventas, gastos e ingresos de su negocio?",
+          field: "registro_ventas_gastos",
+        },
+        {
+          text: "¿Realiza control periódico de inventarios para evitar pérdidas o sobrecostos?",
+          field: "control_inventarios",
+        },
+        {
+          text: "¿Conserva y organiza facturas, recibos y soportes contables de su negocio?",
+          field: "soportes_contables",
+        },
+      ],
+    },
+    {
+      component: "Vitrinas que venden solas",
+      questions: [
+        {
+          text: "¿Organiza los productos estratégicamente para estimular la compra?",
+          field: "organizacion_productos",
+        },
+      ],
+    },
+    {
+      component: "Fortaleciendo mis capacidades como líder 4.0",
+      questions: [
+        {
+          text: "¿Aplica habilidades de comunicación, motivación y toma de decisiones con su equipo?",
+          field: "habilidades_liderazgo",
+        },
+        {
+          text: "¿Considera que fortalecer su liderazgo puede mejorar los resultados de su negocio?",
+          field: "fortalecer_liderazgo",
+        },
+      ],
+    },
   ];
 
 
   const questionToCodesMapping = {
-    "¿Están separadas sus finanzas personales de las de su negocio?": ["229"],
-    "¿Lleva registros de ingresos y gastos de su empresa periódicamente?": ["230", "228", "226"],
-    "¿Ha calculado y registrado sus costos de producción, ventas y administración?": ["230", "228"],
-    "¿Los ingresos por ventas alcanzan a cubrir sus gastos y costos operativos?": ["230", "228"],
-    "¿Cuenta con el inventario suficiente de productos para atender la demanda de sus clientes?": ["230", "225"],
-    "¿Maneja un control de inventarios para los bienes que comercializa o productos que fabrica incluyendo sus materias primas e insumos?": ["230", "225"],
-    "¿Considera que debe fortalecer las habilidades para el manejo del talento humano en su empresa?": ["230", "224"],
-    "¿Ha desarrollado estrategias para conseguir nuevos clientes?": ["227", "234"],
-    "¿Ha analizado sus productos/servicios con relación a su competencia?": ["227"],
-    "¿Mis productos/servicios tienen ventas permanentes?": ["227", "234"],
-    "¿Ha perdido alguna oportunidad de negocio o venta a causa del servicio al cliente?": ["227"],
-    "¿Ha realizado ventas por internet?": ["224"],
-    "¿Conoce cómo desarrollar la venta de sus productos/servicios por internet?": ["224"],
-    "¿Cuenta con equipos de cómputo?": ["224"],
-    "¿Cuenta con página web?": ["224"],
-    "¿Cuenta con red social Facebook?": ["224"],
-    "¿Cuenta con red social Instagram?": ["224"],
-    "¿Cuenta con red social TikTok?": ["224"],
-    "¿Su empresa cuenta con acceso a créditos o servicios financieros para su apalancamiento?": ["233", "232"],
-    "¿Su empresa aplica medidas con enfoque ambiental: ejemplo ahorro de agua, energía, recuperación de residuos, reutilización de desechos, etc.?": ["231"],
+    "¿Ha desarrollado estrategias para conseguir nuevos clientes?": ["343"],
+    "¿Ha analizado sus productos/servicios con relación a su competencia?": ["343"],
+    "¿Mis productos/servicios tienen ventas permanentes?": ["343"],
+    "¿Ha perdido alguna oportunidad de negocio o venta a causa del servicio al cliente?": ["343"],
+    "¿Ha realizado ventas por internet?": ["344"],
+    "¿Utiliza Whatsapp Business?": ["344"],
+    "¿Cuenta con Red social Facebook?": ["344"],
+    "¿Cuenta con Red social Instagram?": ["344"],
+    "¿Cuenta con Red social TiKToK?": ["344"],
+    "¿Su empresa aplica medidas con enfoque ambiental: ejemplo ahorro de agua, energía, recuperación de residuos, reutilización de desechos, etc.?": ["345"],
+    "¿Su negocio aplica acciones concretas para reducir la generación de residuos en sus procesos productivos o comerciales?": ["346"],
+    "¿Ha evaluado oportunidades para transformar residuos en nuevos productos o fuentes de ingreso?": ["346"],
+    "¿Su negocio cuenta con  registros empresariales obligatorios vigentes (Cámara de Comercio, RUT, etc.)?": ["347"],
+    "¿Conoce los beneficios concretos que la formalización puede traerle para acceder a créditos, programas o alianzas?": ["347"],
+    "¿Registra de manera organizada todas las ventas, gastos e ingresos de su negocio?": ["348"],
+    "¿Realiza control periódico de inventarios para evitar pérdidas o sobrecostos?": ["348"],
+    "¿Conserva y organiza facturas, recibos y soportes contables de su negocio?": ["348"],
+    "¿Organiza los productos estratégicamente para estimular la compra?": ["349"],
+    "¿Aplica habilidades de comunicación, motivación y toma de decisiones con su equipo?": ["350"],
+    "¿Considera que fortalecer su liderazgo puede mejorar los resultados de su negocio?": ["350"],
   };
 
   const [answers, setAnswers] = useState({});
@@ -130,13 +148,15 @@ export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   // Lógica invertida
+  // Las preguntas invertidas son aquellas donde responder "Sí" indica un problema
+  // y debe activar la cápsula (puntaje = 0 cuando se responde "Sí")
   const isInvertedQuestion = (questionText) => {
     const trimmed = questionText.trim();
     return (
       trimmed ===
-        "¿Considera que debe fortalecer las habilidades para el manejo del talento humano en su empresa?" ||
+        "¿Ha perdido alguna oportunidad de negocio o venta a causa del servicio al cliente?" ||
       trimmed ===
-        "¿Ha perdido alguna oportunidad de negocio o venta a causa del servicio al cliente?"
+        "¿Considera que fortalecer su liderazgo puede mejorar los resultados de su negocio?"
     );
   };
 
@@ -392,6 +412,14 @@ export default function DiagnosticoTab({ id, onDiagnosticoSaved }) {
           }
         }
       }
+
+      // Agregar cápsulas obligatorias (341, 342, 351)
+      const mandatoryCodes = ["341", "342", "351"];
+      mandatoryCodes.forEach((code) => {
+        if (!triggeredCodes.includes(code)) {
+          triggeredCodes.push(code);
+        }
+      });
 
       // 3) Guardar recommended_codes en pi_capacitacion (como texto JSON)
       try {

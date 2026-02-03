@@ -3,21 +3,19 @@ import PropTypes from "prop-types";
 import axios from "axios";
 import config from '../../config';
 
-// Mapeo de "código" => "texto de la columna" en tu BD
+// Mapeo de "código" => "nombre de columna en BD" (sin tildes, nombres acortados según tabla pi_capacitacion)
 const codeToText = {
-  "224": "224 - Fortaleciendo mis capacidades",
-  "225": "225 - Gestión Administrativa de mi negocio (La importancia y c",
-  "226": "226 - Manejo eficiente del tiempo",
-  "227": "227 - Conociendo el mercado para mi producto",
-  "228": "228 - Finanzas saludables",
-  "229": "229 - Separar finanzas personales y comerciales",
-  "230": "230 - Entendiendo los conceptos básicos financieros",
-  "231": "231 - Tu empresa, tu apuesta verde",
-  "232": "232 - Accediendo a la oferta financiera",
-  "233": "233 - Alistate para crecer",
-  "234": "234 - Vitrinas que venden solas",
-  "235": "235 - Transición a la sostenibilidad",
-  "236": "236 - Construyendo cultura solidaria",
+  "341": "341 - Conectandome con mi negocio 1",
+  "342": "342 - Conectandome con mi negocio 2",
+  "343": "343 - Conectandome con mi negocio",
+  "344": "344 - Conexiones digitales",
+  "345": "345 - Tu empresa, tu apuesta verde",
+  "346": "346 - Transicion a la sostenibilidad",
+  "347": "347 - Alistate para crecer: formalizando mi negocio",
+  "348": "348 - Conectandome con mis finanzas",
+  "349": "349 - Vitrinas que venden solas",
+  "350": "350 - Fortaleciendo mis capacidades como lider 40",
+  "351": "351 - Construyendo cultura solidaria",
 };
 
 export default function CapacitacionTab({ id }) {
@@ -55,7 +53,7 @@ export default function CapacitacionTab({ id }) {
           // No existe => sin recommended_codes
           setRecord(null);
           setRecordId(null);
-          setRecommendedCodes(['235', '236']); // Agregar cápsulas por defecto
+          setRecommendedCodes(['341', '342', '351']); // Cápsulas obligatorias por defecto
         } else {
           const existingRecord = response.data[0];
           setRecordId(existingRecord.id);
@@ -65,25 +63,26 @@ export default function CapacitacionTab({ id }) {
           if (existingRecord.recommended_codes) {
             try {
               codesArray = JSON.parse(existingRecord.recommended_codes);
-              // Asegurar que las cápsulas por defecto estén incluidas
-              if (!codesArray.includes('235')) codesArray.push('235');
-              if (!codesArray.includes('236')) codesArray.push('236');
+              // Asegurar que las cápsulas obligatorias estén incluidas
+              if (!codesArray.includes('341')) codesArray.push('341');
+              if (!codesArray.includes('342')) codesArray.push('342');
+              if (!codesArray.includes('351')) codesArray.push('351');
             } catch (err) {
               console.warn("Error parseando recommended_codes:", err);
-              codesArray = ['235', '236']; // En caso de error, usar cápsulas por defecto
+              codesArray = ['341', '342', '351']; // En caso de error, usar cápsulas obligatorias
             }
           } else {
-            codesArray = ['235', '236']; // Si no hay recommended_codes, usar cápsulas por defecto
+            codesArray = ['341', '342', '351']; // Si no hay recommended_codes, usar cápsulas obligatorias
           }
 
-          setRecommendedCodes(Array.isArray(codesArray) ? codesArray : ['235', '236']);
+          setRecommendedCodes(Array.isArray(codesArray) ? codesArray : ['341', '342', '351']);
           setRecord(existingRecord);
         }
       } catch (error) {
         console.error("Error obteniendo el registro de capacitación:", error);
         setRecord(null);
         setRecordId(null);
-        setRecommendedCodes(['235', '236']); // En caso de error, usar cápsulas por defecto
+        setRecommendedCodes(['341', '342', '351']); // En caso de error, usar cápsulas obligatorias
       } finally {
         setLoading(false);
       }
