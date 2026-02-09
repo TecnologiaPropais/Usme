@@ -201,7 +201,7 @@ export default function PublicRecordCreate() {
           `${config.baseUrl}/inscriptions/tables/${tableName}/fields`
         );
 
-        // Excluir además el campo "Acepta terminos"
+        // Excluir además el campo "Acepta terminos" y "Categoria"
         const filteredFields = fieldsResponse.data.filter(
           (field) =>
             ![
@@ -209,6 +209,7 @@ export default function PublicRecordCreate() {
               'asesor',
               'id',
               'acepta terminos',
+              'categoria',
               'created_at',
               'updated_at',
             ].includes(field.column_name.toLowerCase())

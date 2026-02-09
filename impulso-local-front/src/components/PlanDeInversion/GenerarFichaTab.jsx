@@ -16,6 +16,7 @@ export default function GenerarFichaTab({ id }) {
   const [datosTab, setDatosTab] = useState({});
   const [propuestaMejoraData, setPropuestaMejoraData] = useState([]);
   const [formulacionData, setFormulacionData] = useState([]);
+  const [formulacionPlanData, setFormulacionPlanData] = useState([]); // Datos para tabla "Formulación Plan de Inversión" (pi_formulacion_prov + proveedores)
   const [groupedRubros, setGroupedRubros] = useState([]);
   const [totalInversion, setTotalInversion] = useState(0);
   const [relatedData, setRelatedData] = useState({});
@@ -155,6 +156,53 @@ export default function GenerarFichaTab({ id }) {
         // 8. Procesar datos de `pi_formulacion`
         setFormulacionData(formulacionResponse.data);
         console.log("Datos de pi_formulacion:", formulacionResponse.data);
+
+        // 8b. Obtener datos para "Formulación Plan de Inversión" (pi_formulacion_prov + provider_proveedores + provider_elemento)
+        const formulacionProvUrl = `${config.urls.inscriptions.pi}/tables/pi_formulacion_prov/records?caracterizacion_id=${id}`;
+        const elementosUrl = `${config.urls.inscriptions.tables}/provider_elemento/records`;
+        const [formulacionProvResponse, elementosResponse] = await Promise.all([
+          axios.get(formulacionProvUrl, { headers: { Authorization: `Bearer ${token}` } }),
+          axios.get(elementosUrl, { headers: { Authorization: `Bearer ${token}` } }),
+        ]);
+        const piFormulacionProvRecords = formulacionProvResponse.data || [];
+        const elementosList = elementosResponse.data || [];
+
+        const getElementoNombre = (elementoId) => {
+          const el = elementosList.find((e) => String(e.id) === String(elementoId));
+          return el ? (el.Elemento || 'No disponible') : 'No disponible';
+        };
+
+        const providerIdsUniq = [...new Set(
+          piFormulacionProvRecords
+            .map((r) => r.rel_id_prov)
+            .filter((pid) => pid !== undefined && pid !== null)
+        )];
+        const providerMap = {};
+        for (const providerId of providerIdsUniq) {
+          try {
+            const provRes = await axios.get(
+              `${config.urls.inscriptions.tables}/provider_proveedores/record/${providerId}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            );
+            const record = provRes.data.record || provRes.data;
+            providerMap[String(providerId)] = record;
+          } catch {
+            providerMap[String(providerId)] = null;
+          }
+        }
+
+        const planRows = piFormulacionProvRecords
+          .slice()
+          .sort((a, b) => (a.selectionorder ?? Infinity) - (b.selectionorder ?? Infinity))
+          .map((piRec) => {
+            const provider = providerMap[String(piRec.rel_id_prov)];
+            const tipoBien = piRec.selectionorder === 1 ? 'Primario' : 'Complementario';
+            const bienSeleccionado = provider ? getElementoNombre(provider.Elemento) : 'No disponible';
+            const descripcionBien = provider ? (provider['Descripcion corta'] || 'No disponible') : 'No disponible';
+            const cantidad = piRec.Cantidad != null && piRec.Cantidad !== '' ? String(piRec.Cantidad) : '0';
+            return { tipoBien, bienSeleccionado, descripcionBien, cantidad };
+          });
+        setFormulacionPlanData(planRows);
 
         // 9. Agrupar Rubros y calcular total inversión
         const rubrosOptions = [
@@ -365,82 +413,38 @@ export default function GenerarFichaTab({ id }) {
         yPosition += 14;
       }
 
-      // 4. FORMULACIÓN DE INVERSIÓN
+      // 4. FORMULACIÓN PLAN DE INVERSIÓN
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 20;
-      doc.text("FORMULACIÓN DE INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
+      doc.text("FORMULACIÓN PLAN DE INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
       yPosition += 20;
 
-      if (formulacionData.length > 0) {
-        const formulacionHeaders = [
-          { header: 'Rubro', dataKey: 'rubro' },
-          { header: 'Elemento', dataKey: 'elemento' },
-          { header: 'Descripción', dataKey: 'descripcion' },
-          { header: 'Cantidad', dataKey: 'cantidad' },
-          { header: 'Valor Unitario', dataKey: 'valorUnitario' },
-          { header: 'Valor Total', dataKey: 'valorTotal' },
-        ];
-
-        const formulacionBody = formulacionData.map(item => ({
-          rubro: item["Rubro"] || 'No disponible',
-          elemento: item["Elemento"] || 'No disponible',
-          descripcion: item["Descripción"] || 'No disponible',
-          cantidad: item["Cantidad"] ? item["Cantidad"].toLocaleString() : '0',
-          valorUnitario: item["Valor Unitario"] ? `$${item["Valor Unitario"].toLocaleString()}` : '$0',
-          valorTotal: item["Cantidad"] && item["Valor Unitario"]
-            ? `$${(item["Cantidad"] * item["Valor Unitario"]).toLocaleString()}`
-            : '$0',
-        }));
-
-        doc.autoTable({
-          startY: yPosition,
-          head: [formulacionHeaders.map(col => col.header)],
-          body: formulacionBody.map(row => formulacionHeaders.map(col => row[col.dataKey])),
-          theme: 'striped',
-          styles: { fontSize: fontSizes.normal, cellPadding: 4 },
-          tableWidth: 'auto',
-          headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
-          margin: { left: margin, right: margin },
-          didDrawPage: (data) => {
-            yPosition = data.cursor.y;
-          },
-        });
-
-        yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
-      } else {
-        doc.text("No hay registros de formulación de inversión.", margin, yPosition);
-        yPosition += 14;
-      }
-
-      // 5. RESUMEN DE LA INVERSIÓN
-      doc.setFontSize(fontSizes.subtitle);
-      doc.setFont(undefined, 'bold');
-      yPosition += 20;
-      doc.text("RESUMEN DE LA INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
-
-      yPosition += 20;
-
-      const resumenColumns = [
-        { header: 'Rubro', dataKey: 'rubro' },
-        { header: 'Valor', dataKey: 'total' },
-      ];
+      const formulacionPlanHeaders = ['Tipo de bien', 'Bien seleccionado', 'Descripción del bien', 'Cantidad'];
+      const formulacionPlanBody = formulacionPlanData.length > 0
+        ? formulacionPlanData.map((row) => [
+            row.tipoBien,
+            row.bienSeleccionado,
+            row.descripcionBien,
+            row.cantidad,
+          ])
+        : [['Sin registros', '', '', '']];
 
       doc.autoTable({
         startY: yPosition,
-        head: [resumenColumns.map(col => col.header)],
-        body: groupedRubros.map(row => {
-          const valorFormateado = `$${Number(row.total).toLocaleString()}`;
-          return [row.rubro, valorFormateado];
-        }),
+        head: [formulacionPlanHeaders],
+        body: formulacionPlanBody,
         theme: 'striped',
         styles: { fontSize: fontSizes.normal, cellPadding: 4 },
         tableWidth: 'auto',
         headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
         margin: { left: margin, right: margin },
+        columnStyles: {
+          2: { cellWidth: 'auto' }, // Descripción del bien puede ser larga
+        },
         didDrawPage: (data) => {
           yPosition = data.cursor.y;
         },
@@ -448,30 +452,7 @@ export default function GenerarFichaTab({ id }) {
 
       yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
 
-      // Añadir tabla para "Total Inversión, Monto disponible, Contrapartida"
-      const datosInversion = [
-        ["Total Inversión", `$${Number(totalInversion).toLocaleString()}`],
-        ["Monto disponible", `$${montoDisponible.toLocaleString()}`],
-        ["Contrapartida", `$${Number(contrapartida).toLocaleString()}`],
-      ];
-
-      doc.autoTable({
-        startY: yPosition,
-        head: [["Concepto", "Valor"]],
-        body: datosInversion,
-        theme: 'striped',
-        styles: { fontSize: fontSizes.normal, cellPadding: 4 },
-        tableWidth: 'auto',
-        headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
-        margin: { left: margin, right: margin },
-        didDrawPage: (data) => {
-          yPosition = data.cursor.y;
-        },
-      });
-
-      yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
-
-      // 6. CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN
+      // 5. CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN
       doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       yPosition += 30;
@@ -483,13 +464,10 @@ export default function GenerarFichaTab({ id }) {
 
       // Actualizar textoViabilidad con el nuevo contenido
       const textoViabilidad = [
-        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial del beneficiario denominado ${nombreEmprendimiento} y haciendo parte del equipo ejecutor del programa "Impulso Local 4.0" que emana del Convenio Interadministrativo suscrito entre la Corporación para el Desarrollo de las Microempresas – PROPAIS y el Fondo de desarrollo local, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa.`,
+        `Yo, ${asesorNombre}, identificado(a) con documento de identidad N° ${asesorDocumento}, en mi calidad de asesor empresarial del beneficiario denominado ${nombreEmprendimiento} y haciendo parte del equipo ejecutor del programa "Usme Orgullo Local" que emana del Convenio Interadministrativo suscrito entre la Corporación para el Desarrollo de las Microempresas – PROPAIS y el Fondo de desarrollo local, emito concepto de VIABILIDAD para acceder a los recursos de capitalización proporcionados por el citado Programa.`,
         "",
         "NOTA: Declaro que toda la información sobre el plan de inversión aquí consignada fue diligenciada en conjunto con el asesor empresarial a cargo, está de acuerdo con las condiciones del negocio, es verdadera, completa y correcta, la cual puede ser verificada en cualquier momento.",
         "",
-        "NOTA: En caso de que se presente un incremento en la planeación de los recursos del 20% de la capitalización al momento de la ejecución de esta, por favor revisar en conjunto con el empresario (a) el alcance de los mismos, y reformular si aplica, siempre manteniendo el tope máximo del 20% de la destinación.",
-        "",
-        "NOTA: El beneficiario asegura, mediante la firma del presente documento, que cuenta con el recurso adicional necesario para realizar la adquisición de: los productos, servicios, maquinarias, equipos y/o herramientas que planea adquirir con los recursos de la capitalización, en caso de que estos tengan un valor mayor al entregado por el programa."
       ];
 
       textoViabilidad.forEach(parrafo => {
@@ -503,7 +481,7 @@ export default function GenerarFichaTab({ id }) {
         yPosition += lines.length * 14 + 10;
       });
 
-      // 7. Sección de Firmas
+      // 6. Sección de Firmas
       const firmasSectionHeight = 120;
       yPosition += 10;
       yPosition = checkPageEnd(doc, yPosition, firmasSectionHeight);
@@ -516,36 +494,38 @@ export default function GenerarFichaTab({ id }) {
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
 
-      const boxWidth = 150;
-      const boxHeight = 40;
-      const beneficiarioBoxX = margin + 30;
-      const asesorBoxX = pageWidth - margin - 180;
+      const lineWidth = 150;
+      const beneficiarioCenterX = margin + 30 + lineWidth / 2;
+      const asesorCenterX = pageWidth - margin - 30 - lineWidth / 2;
 
-      doc.text("Beneficiario", beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
-      doc.text("Asesor", asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
+      doc.text("Beneficiario", beneficiarioCenterX, yPosition, { align: 'center' });
+      doc.text("Asesor", asesorCenterX, yPosition, { align: 'center' });
 
-      yPosition += 10;
-      doc.rect(beneficiarioBoxX, yPosition, boxWidth, boxHeight);
-      doc.rect(asesorBoxX, yPosition, boxWidth, boxHeight);
+      yPosition += 70;
+      const lineY = yPosition;
+      doc.setDrawColor(0, 0, 0);
+      doc.setLineWidth(0.5);
+      doc.line(beneficiarioCenterX - lineWidth / 2, lineY, beneficiarioCenterX + lineWidth / 2, lineY);
+      doc.line(asesorCenterX - lineWidth / 2, lineY, asesorCenterX + lineWidth / 2, lineY);
 
-      yPosition += boxHeight + 15;
-
-      // Si el beneficiario se llama '', lo mostramos en blanco
+      yPosition += 18;
       const benefNameToShow = emprendedorNombre.trim() === 'No disponible' ? '' : emprendedorNombre.trim();
-      doc.text(benefNameToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
-
-      doc.text(asesorNombre, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
+      doc.text(benefNameToShow, beneficiarioCenterX, yPosition, { align: 'center' });
+      doc.text(asesorNombre, asesorCenterX, yPosition, { align: 'center' });
 
       yPosition += 15;
-      // Para la cédula del beneficiario, si no hay nada, dejar en blanco
-      const emprendedorCC = caracterizacionData["Numero de documento de identificacion ciudadano"] || '';
-      const benefCCToShow = emprendedorCC.trim() === 'No disponible' ? '' : `C.C. ${emprendedorCC.trim()}`;
-      doc.text(benefCCToShow, beneficiarioBoxX + boxWidth / 2, yPosition, { align: 'center' });
+      const numeroCedulaBeneficiario = caracterizacionData["Numero de identificacion"] || caracterizacionData["Numero de documento de identificacion ciudadano"] || '';
+      const benefCCToShow = numeroCedulaBeneficiario.toString().trim() === '' || numeroCedulaBeneficiario.toString().trim() === 'No disponible'
+        ? 'C.C.'
+        : `C.C. ${numeroCedulaBeneficiario.toString().trim()}`;
+      doc.text(benefCCToShow, beneficiarioCenterX, yPosition, { align: 'center' });
+      const asesorDoc = (asesorDocumento && asesorDocumento.toString().trim() !== '' && asesorDocumento !== 'No disponible')
+        ? asesorDocumento.toString().trim()
+        : '';
+      const asesorCCToShow = asesorDoc === '' ? 'C.C.' : `C.C. ${asesorDoc}`;
+      doc.text(asesorCCToShow, asesorCenterX, yPosition, { align: 'center' });
 
-      const asesorCCToShow = asesorDocumento === 'No disponible' ? '' : `C.C. ${asesorDocumento}`;
-      doc.text(asesorCCToShow, asesorBoxX + boxWidth / 2, yPosition, { align: 'center' });
-
-      // 8. Sección de Fecha y Hora
+      // 7. Sección de Fecha y Hora
       const dateSectionHeight = 30;
       yPosition += 30;
       yPosition = checkPageEnd(doc, yPosition, dateSectionHeight);
