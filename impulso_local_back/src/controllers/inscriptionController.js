@@ -1653,7 +1653,7 @@ exports.getFieldOptions = async (req, res) => {
 // Controlador uploadFile
 exports.uploadFile = async (req, res) => {
   const { table_name, record_id } = req.params;
-  const { fileName, caracterizacion_id, source, user_id } = req.body;
+  const { fileName, caracterizacion_id, source, user_id, fieldName } = req.body;
   const finalUserId = user_id || 0;
   
   console.log(`[uploadFile] Iniciando upload para tabla: ${table_name}, record_id: ${record_id}`);
@@ -1727,9 +1727,12 @@ exports.uploadFile = async (req, res) => {
         // Determinar la carpeta según el tipo de documento
         let subfolder = '';
         if (table_name === 'pi_anexosv2') {
-          // Determinar si es visita 1 o visita 2 basado en el nombre del campo
+          // Determinar si es visita 1 o visita 2 basado en el campo (fieldName) o en el código del nombre de archivo
           const visita1Fields = ['acta_visita_verificacion', 'autorizacion_imagen', 'autorizacion_firma', 'registro_fotografico_1', 'plan_inversion', 'carta_compromiso'];
-          const isVisita1 = visita1Fields.some(field => finalFileName.startsWith(field));
+          const visita1Codes = ['AV1', 'AID', 'FD', 'RF1', 'PI', 'CC'];
+          const isVisita1ByField = fieldName && visita1Fields.includes(fieldName);
+          const isVisita1ByFileName = visita1Codes.some(code => finalFileName.includes(`_${code}.`));
+          const isVisita1 = isVisita1ByField || isVisita1ByFileName;
           subfolder = isVisita1 ? '2. Documentos Visita 1' : '3. Documentos Visita 2';
         }
         

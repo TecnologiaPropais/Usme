@@ -201,7 +201,7 @@ export default function PlanDeInversion() {
                   <i className="fas fa-play-circle"></i> Ejecución
                 </a>
               </li>*/}
-              <li className={`nav-item ${activeTab === 'EncuestaSalida' ? 'active' : ''}`}>
+              {/*<li className={`nav-item ${activeTab === 'EncuestaSalida' ? 'active' : ''}`}>
                 <a
                   href="#"
                   className="nav-link"
@@ -212,7 +212,7 @@ export default function PlanDeInversion() {
                 >
                   <i className="fas fa-poll"></i> Encuesta de Salida
                 </a>
-              </li>
+              </li>*/}
               <li className={`nav-item ${activeTab === 'GenerarFicha' ? 'active' : ''}`}>
                 <a
                   href="#"

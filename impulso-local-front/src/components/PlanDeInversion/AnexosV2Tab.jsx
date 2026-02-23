@@ -19,6 +19,9 @@ export default function AnexosV2Tab({ id }) {
   const [currentField, setCurrentField] = useState(null);
   const [selectedFile, setSelectedFile] = useState(null);
 
+  // Cache de caracterización (evita refetch en cada subida de archivo)
+  const [caracterizacionRecord, setCaracterizacionRecord] = useState(null);
+
   // Nombres de los documentos para mostrar - basados en la estructura real de la tabla
   const documentNames = {
     // Documentos Visita 1
@@ -36,6 +39,20 @@ export default function AnexosV2Tab({ id }) {
     encuesta_satisfaccion: 'Encuesta de satisfacción'
   };
 
+  // Código de etiquetado por campo (numeroDoc_Nombres Apellidos_CODIGO.ext)
+  const documentCodes = {
+    acta_visita_verificacion: 'AV1',
+    autorizacion_imagen: 'AID',
+    autorizacion_firma: 'FD',
+    registro_fotografico_1: 'RF1',
+    plan_inversion: 'PI',
+    carta_compromiso: 'CC',
+    verificacion_entrega: 'VE',
+    acta_segunda_visita: 'AV2',
+    registro_fotografico: 'RF2',
+    encuesta_satisfaccion: 'ES',
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -46,39 +63,23 @@ export default function AnexosV2Tab({ id }) {
         return;
       }
 
-      console.log("🔍 DEBUG: Intentando obtener datos de la tabla:", tableName);
-      console.log("🔍 DEBUG: URL GET:", `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`);
-      console.log("🔍 DEBUG: ID de caracterización:", id);
-
       const response = await axios.get(
         `${config.urls.inscriptions.pi}/tables/${tableName}/records?caracterizacion_id=${id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      console.log("🔍 DEBUG: Respuesta GET exitosa:", response.data);
-
       const recordData = response.data[0] || null;
 
       if (recordData) {
-        console.log("🔍 DEBUG: Registro encontrado:", recordData);
         setData(recordData);
         setOriginalData({ ...recordData });
       } else {
-        console.log("🔍 DEBUG: No se encontró registro, creando uno nuevo...");
-        // Crear registro con user_id si el backend lo necesita
         const userId = localStorage.getItem('id');
-        console.log("🔍 DEBUG: User ID:", userId);
-        console.log("🔍 DEBUG: URL POST:", `${config.urls.inscriptions.pi}/tables/${tableName}/record`);
-        console.log("🔍 DEBUG: Datos a enviar:", { caracterizacion_id: id, user_id: userId });
-        console.log("🔍 DEBUG: Token (primeros 20 chars):", token.substring(0, 20) + "...");
-        
         const createResponse = await axios.post(
           `${config.urls.inscriptions.pi}/tables/${tableName}/record`,
           { caracterizacion_id: id, user_id: userId },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        
-        console.log("🔍 DEBUG: Respuesta POST exitosa:", createResponse.data);
         const newRecord = createResponse.data.record || createResponse.data; 
         setData({ ...newRecord });
         setOriginalData({ ...newRecord });
@@ -86,14 +87,6 @@ export default function AnexosV2Tab({ id }) {
 
       setLoading(false);
       } catch (err) {
-        console.error("❌ ERROR: Error obteniendo datos de Anexos V2:", err);
-        console.error("❌ ERROR: Status:", err.response?.status);
-        console.error("❌ ERROR: Status Text:", err.response?.statusText);
-        console.error("❌ ERROR: Response Data:", err.response?.data);
-        console.error("❌ ERROR: Request URL:", err.config?.url);
-        console.error("❌ ERROR: Request Method:", err.config?.method);
-        console.error("❌ ERROR: Request Data:", err.config?.data);
-        
         // Mostrar mensaje de error más específico
         const errorMessage = err.response?.data?.error || err.response?.data?.message || "Error obteniendo datos";
         setError(`Error: ${errorMessage}`);
@@ -101,8 +94,25 @@ export default function AnexosV2Tab({ id }) {
       }
   };
 
+  const fetchCaracterizacion = async () => {
+    if (!id) return;
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+      const res = await axios.get(
+        `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const record = res.data.record || res.data;
+      setCaracterizacionRecord(record);
+    } catch {
+      setCaracterizacionRecord(null);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchCaracterizacion();
   }, [id]);
 
   const handleFileChange = (e) => {
@@ -131,16 +141,29 @@ export default function AnexosV2Tab({ id }) {
       const token = localStorage.getItem('token');
       const userId = localStorage.getItem('id');
       
-      const uniqueSuffix = Date.now();
       const extension = selectedFile.name.split('.').pop();
-      const fileNameWithPrefix = `${currentField}_${uniqueSuffix}.${extension}`;
+      let fileNameWithPrefix;
+      const code = documentCodes[currentField];
 
-      console.log("🔍 DEBUG: Iniciando subida de archivo...");
-      console.log("🔍 DEBUG: Archivo seleccionado:", selectedFile.name);
-      console.log("🔍 DEBUG: Nombre final:", fileNameWithPrefix);
-      console.log("🔍 DEBUG: Campo actual:", currentField);
-      console.log("🔍 DEBUG: ID del registro:", data.id);
-      console.log("🔍 DEBUG: ID de caracterización:", id);
+      if (code) {
+        let car = caracterizacionRecord;
+        if (!car) {
+          const carResponse = await axios.get(
+            `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          car = carResponse.data.record || carResponse.data;
+          setCaracterizacionRecord(car);
+        }
+        const numeroDoc = (car['Numero de identificacion'] ?? '').toString().trim();
+        const nombres = (car['Nombres'] ?? '').toString().trim();
+        const apellidos = (car['Apellidos'] ?? '').toString().trim();
+        const nombresApellidos = [nombres, apellidos].filter(Boolean).join(' ');
+        fileNameWithPrefix = `${numeroDoc}_${nombresApellidos}_${code}.${extension}`;
+      } else {
+        const uniqueSuffix = Date.now();
+        fileNameWithPrefix = `${currentField}_${uniqueSuffix}.${extension}`;
+      }
 
       const formData = new FormData();
       formData.append('file', selectedFile);
@@ -148,8 +171,6 @@ export default function AnexosV2Tab({ id }) {
       formData.append('caracterizacion_id', id);
       formData.append('user_id', userId);
       formData.append('fieldName', currentField);
-
-      console.log("🔍 DEBUG: URL de upload:", `${config.baseUrl}/inscriptions/tables/${tableName}/record/${data.id}/upload`);
 
       const uploadResponse = await axios.post(
         `${config.baseUrl}/inscriptions/tables/${tableName}/record/${data.id}/upload`,
@@ -162,11 +183,7 @@ export default function AnexosV2Tab({ id }) {
         }
       );
 
-      console.log("🔍 DEBUG: Respuesta de upload:", uploadResponse.data);
-
-      // Obtener la URL del archivo desde la respuesta del backend
       const fileUrl = uploadResponse.data.url;
-      console.log("🔍 DEBUG: URL del archivo obtenida:", fileUrl);
 
       // Actualizar el campo en la base de datos con la URL del archivo
       const updateData = {
@@ -189,36 +206,26 @@ export default function AnexosV2Tab({ id }) {
         }
       );
 
-      alert("Archivo subido exitosamente");
       await fetchData();
+
+      alert("Archivo subido exitosamente");
       closeModal();
     } catch (error) {
-      console.error('Error subiendo el archivo:', error);
       setError('Error subiendo el archivo');
     }
   };
 
   const handleFileView = async (filePath) => {
     try {
-      console.log("🔍 DEBUG: Intentando abrir archivo:", filePath);
-      
-      // Si filePath ya es una URL firmada, usarla directamente
       if (filePath.startsWith('https://') && filePath.includes('X-Goog-Signature')) {
-        console.log("🔍 DEBUG: URL firmada detectada, abriendo...");
         window.open(filePath, '_blank');
         return;
       }
       
       // Si es una URL pública de GCS, generar una nueva URL firmada
       if (filePath.startsWith('https://storage.googleapis.com/')) {
-        console.log("🔍 DEBUG: URL pública de GCS detectada, generando URL firmada...");
-        
-        // Extraer el path del archivo de la URL pública
         const urlParts = filePath.split('/');
         const filePathInBucket = urlParts.slice(4).join('/');
-        
-        console.log("🔍 DEBUG: Path del archivo en bucket:", filePathInBucket);
-        
         const token = localStorage.getItem('token');
         
         // Obtener URL firmada del backend
@@ -230,19 +237,11 @@ export default function AnexosV2Tab({ id }) {
             },
           }
         );
-
-        console.log("🔍 DEBUG: URL firmada obtenida:", response.data.signedUrl);
-        
-        // Abrir el archivo en una nueva pestaña
         window.open(response.data.signedUrl, '_blank');
         return;
       }
       
-      // Si no es una URL, generar una nueva URL firmada
       const token = localStorage.getItem('token');
-      console.log("🔍 DEBUG: Generando URL firmada para:", filePath);
-      
-      // Obtener URL firmada del backend
       const response = await axios.get(
         `${config.baseUrl}/inscriptions/files/signed-url/${encodeURIComponent(filePath)}`,
         {
@@ -251,14 +250,8 @@ export default function AnexosV2Tab({ id }) {
           },
         }
       );
-
-      console.log("🔍 DEBUG: URL firmada obtenida:", response.data.signedUrl);
-      
-      // Abrir el archivo en una nueva pestaña
       window.open(response.data.signedUrl, '_blank');
     } catch (error) {
-      console.error('Error obteniendo URL firmada:', error);
-      console.error('Error details:', error.response?.data);
       alert('Error al abrir el archivo');
     }
   };
@@ -268,20 +261,9 @@ export default function AnexosV2Tab({ id }) {
       try {
         const token = localStorage.getItem('token');
         const userId = localStorage.getItem('id');
-        
-        console.log("🔍 DEBUG: Eliminando archivo del campo:", fieldName);
-        console.log("🔍 DEBUG: URL del archivo:", data[fieldName]);
-        
-        // Eliminar archivo de GCS y limpiar campo en tabla pi_
         if (data[fieldName]) {
-          // Extraer el nombre del archivo de la ruta de GCS
           const fileName = data[fieldName].split('/').pop();
-          console.log("🔍 DEBUG: Nombre del archivo a eliminar:", fileName);
-          
-          // Usar la ruta específica para tablas pi_
           const deleteUrl = `${config.baseUrl}/inscriptions/pi/tables/${tableName}/record/${data.id}/file/${fileName}`;
-          console.log("🔍 DEBUG: URL de eliminación:", deleteUrl);
-          
           const response = await axios.delete(
             deleteUrl,
             {
@@ -295,15 +277,10 @@ export default function AnexosV2Tab({ id }) {
               }
             }
           );
-          
-          console.log("🔍 DEBUG: Respuesta de eliminación:", response.data);
         }
-
         await fetchData();
         alert("Archivo eliminado exitosamente");
       } catch (error) {
-        console.error('Error eliminando el archivo:', error);
-        console.error('Error details:', error.response?.data);
         setError('Error eliminando el archivo');
       }
     }
