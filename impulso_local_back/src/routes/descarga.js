@@ -192,16 +192,16 @@ async function getDocumentPathsForCedula(cedula) {
     }
 
     // files: record_id = caracterizacion_id, solo documentos con cumple = true
-    console.log('[descarga] Paso 4: query files (documentos_iniciales, cumple = true)...');
+    // Incluye documentos de inscripción (documentos_iniciales, documentos_inscripcion, etc. según cómo se guarden en BD)
+    console.log('[descarga] Paso 4: query files (cumple = true)...');
     const inicialesResult = await client.query(
-      `SELECT file_path, name FROM files 
+      `SELECT file_path, name, source FROM files 
        WHERE record_id = $1 
        AND table_name = 'inscription_caracterizacion' 
-       AND source = 'documentos_iniciales'
        AND cumple = true`,
       [caracterizacionId]
     );
-    console.log('[descarga] Paso 4 OK: files (documentos_iniciales, cumple=true) rows=', inicialesResult.rows.length);
+    console.log('[descarga] Paso 4 OK: files (cumple=true) rows=', inicialesResult.rows.length);
 
     client.release();
     console.log('[descarga] Paso 5: cliente liberado, procesando rutas GCS...');
@@ -216,12 +216,14 @@ async function getDocumentPathsForCedula(cedula) {
         if (gcsPath.startsWith(`${folderName}/`)) {
           relativePath = gcsPath.replace(`${folderName}/`, '');
         }
+        const sourceLabel = row.source || 'documentos_inscripcion';
+        console.log('[descarga] Archivo de files (cumple=true):', relativePath, 'source:', sourceLabel);
         files.push({
           gcsPath: gcsPath,
           name: fileName,
           relativePath: relativePath,
           size: 'unknown',
-          fieldName: 'documentos_iniciales'
+          fieldName: sourceLabel
         });
       }
     }
