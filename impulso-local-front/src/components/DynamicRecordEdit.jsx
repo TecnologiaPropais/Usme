@@ -85,6 +85,9 @@ export default function DynamicRecordEdit() {
   };
 
   const role = getLoggedUserRoleId();
+  // Revisor documental (7): solo visualizar y cambiar cumplimiento. Consulta (3): solo visualizar.
+  const isSoloLectura = role === '3' || role === '7';
+  const puedeCambiarCumplimiento = role !== '3'; // Rol 7 sí puede; rol 3 no.
 
   const handleOpenStatusModal = () => {
     setNewStatus(record.Estado || '');
@@ -859,7 +862,7 @@ export default function DynamicRecordEdit() {
                           name={field.column_name}
                           value={record[field.column_name] || ''}
                           onChange={handleChange}
-                          disabled={role === '3'}
+                          disabled={isSoloLectura}
                         >
                           <option value="">-- Selecciona un Asesor --</option>
                           {asesors.map((asesor) => (
@@ -874,7 +877,7 @@ export default function DynamicRecordEdit() {
                           name={field.column_name}
                           value={record[field.column_name] || ''}
                           onChange={handleChange}
-                          disabled={role === '3'}
+                          disabled={isSoloLectura}
                         >
                           <option value="">-- Selecciona una opción --</option>
                           {tipoActividadOptions.map((option) => (
@@ -887,7 +890,7 @@ export default function DynamicRecordEdit() {
                           name={field.column_name}
                           value={record[field.column_name] || ''}
                           onChange={handleChange}
-                          disabled={role === '3'}
+                          disabled={isSoloLectura}
                         >
                           <option value="">-- Selecciona una opción --</option>
                           {activosOptions.map((option) => (
@@ -900,7 +903,7 @@ export default function DynamicRecordEdit() {
                           name={field.column_name}
                           value={record[field.column_name] || ''}
                           onChange={handleChange}
-                          disabled={role === '3'}
+                          disabled={isSoloLectura}
                         >
                           <option value="">-- Selecciona una opción --</option>
                           {relatedData[field.column_name]?.map(
@@ -921,14 +924,14 @@ export default function DynamicRecordEdit() {
                           value={record[field.column_name] || ''}
                           onChange={handleChange}
                           className="form-control"
-                          readOnly={role === '3'}
+                          readOnly={isSoloLectura}
                         />
                       )}
                     </div>
                   )
                   ))}
 
-                  {role !== '3' && (
+                  {!isSoloLectura && (
                     <button type="submit" className="btn btn-primary">
                       Guardar Cambios
                     </button>
@@ -978,7 +981,7 @@ export default function DynamicRecordEdit() {
                       <div style={estadoStyle}>
                         {currentEstado?.label || 'Sin estado'}
                       </div>
-                      {role !== '3' && (
+                      {!isSoloLectura && (
                         <button
                           className="btn btn-secondary btn-sm btn-block mt-2"
                           onClick={handleOpenStatusModal}
@@ -987,7 +990,7 @@ export default function DynamicRecordEdit() {
                         </button>
                       )}
                       {/* Botón Enviar correo - siempre visible */}
-                      {role !== '3' && (
+                      {!isSoloLectura && (
                         <button
                           className="btn btn-danger btn-sm btn-block mt-2"
                           onClick={handleSendManualEmail}
@@ -1057,7 +1060,7 @@ export default function DynamicRecordEdit() {
                             </div>
                           );
                         })}
-                        {role !== '3' && (
+                        {!isSoloLectura && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoPriorizacion(true)}>
                             Editar
                           </button>
@@ -1117,7 +1120,7 @@ export default function DynamicRecordEdit() {
                             </div>
                           );
                         })}
-                        {role !== '3' && (
+                        {!isSoloLectura && (
                           <button className="btn btn-light btn-sm mt-2" style={{ border: '1px solid #ccc' }} onClick={() => setEditandoCategoria(true)}>
                             Editar
                           </button>
@@ -1128,7 +1131,7 @@ export default function DynamicRecordEdit() {
 
                   <div className="mt-4" style={{ width: '100%' }}>
                     <h5>Archivos adicionales</h5>
-                    {!showUploadForm && role !== '3' && (
+                    {!showUploadForm && !isSoloLectura && (
                       <button
                         type="button"
                         className="btn btn-primary btn-sm btn-block mb-2"
@@ -1138,7 +1141,7 @@ export default function DynamicRecordEdit() {
                       </button>
                     )}
 
-                    {showUploadForm && role !== '3' && (
+                    {showUploadForm && !isSoloLectura && (
                       <form onSubmit={handleFileUpload}>
                         <div className="form-group">
                           <label>Nombre del archivo</label>
@@ -1218,7 +1221,7 @@ export default function DynamicRecordEdit() {
                                     display: 'inline-block',
                                   }}
                                   onClick={() =>
-                                    role !== '3' && handleOpenComplianceModal(file)
+                                    puedeCambiarCumplimiento && handleOpenComplianceModal(file)
                                   }
                                 >
                                   {file.cumple === true ||
@@ -1238,7 +1241,7 @@ export default function DynamicRecordEdit() {
                                   </p>
                                 )}
                               </div>
-                              {role !== '3' && (
+                              {!isSoloLectura && (
                                 <button
                                   className="btn btn-danger btn-sm"
                                   onClick={() => handleFileDelete(file.id)}
@@ -1256,6 +1259,7 @@ export default function DynamicRecordEdit() {
                   <div className="mt-4" style={{ width: '100%' }}>
                     <h5>Comentarios</h5>
 
+                    {/* Consulta (3) no puede comentar; Revisor documental (7) sí puede */}
                     {role !== '3' && (
                       <form onSubmit={handleAddComment}>
                         <div className="form-group">
@@ -1303,15 +1307,15 @@ export default function DynamicRecordEdit() {
                   </div>
 
                   <div className="mt-4" style={{ width: '100%' }}>
-                    {role !== '3' && (
-                      <button
-                        type="button"
-                        className="btn btn-info btn-sm btn-block"
-                        onClick={() => setShowHistoryModal(true)}
-                      >
-                        Ver Historial de Cambios
-                      </button>
-                    )}
+{!isSoloLectura && (
+                        <button
+                          type="button"
+                          className="btn btn-info btn-sm btn-block"
+                          onClick={() => setShowHistoryModal(true)}
+                        >
+                          Ver Historial de Cambios
+                        </button>
+                      )}
                   </div>
                 </div>
               )}

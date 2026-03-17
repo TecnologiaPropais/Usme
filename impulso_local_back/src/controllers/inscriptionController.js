@@ -478,7 +478,6 @@ exports.getTableFields = async (req, res) => {
 
   try {
     // Verificar que el nombre de la tabla sea válido y tenga un prefijo permitido
-    // console.log(`Consultando campos para la tabla: ${table_name}`);
 
     // Realiza una consulta a la base de datos para obtener los campos de la tabla especificada.
     // La consulta obtiene el nombre de la columna, tipo de dato, si permite nulos y, si aplica, las relaciones de claves foráneas.
@@ -733,11 +732,28 @@ exports.uploadCsv = async (req, res) => {
         // Tratar los valores del CSV y convertirlos a un formato adecuado para la base de datos.
         const processedData = Object.keys(data).reduce((acc, key) => {
           if (tableColumns[key]) {
-            // Asegurarse de que los valores no sean nulos para los campos de tipo VARCHAR y TEXT.
+            const raw = data[key];
+            const isEmpty = raw === undefined || raw === null || (typeof raw === 'string' && raw.trim() === '');
+            // VARCHAR y TEXT: cadena limpia; vacío queda como ''
             if (tableColumns[key].type === Sequelize.STRING || tableColumns[key].type === Sequelize.TEXT) {
-              acc[key] = data[key] ? data[key].toString().trim() : ''; // Convertir a cadena y limpiar espacios.
+              acc[key] = raw ? String(raw).trim() : '';
+            } else if (tableColumns[key].type === Sequelize.INTEGER) {
+              // Integer: cadena vacía -> null para evitar "invalid input syntax for type integer: """
+              if (isEmpty) {
+                acc[key] = null;
+              } else {
+                const n = parseInt(String(raw).trim(), 10);
+                acc[key] = Number.isNaN(n) ? null : n;
+              }
+            } else if (tableColumns[key].type === Sequelize.BOOLEAN) {
+              if (isEmpty) acc[key] = null;
+              else acc[key] = /^(true|1|sí|si|yes|s)$/i.test(String(raw).trim());
+            } else if (tableColumns[key].type === Sequelize.DATE) {
+              if (isEmpty) acc[key] = null;
+              else acc[key] = raw;
             } else {
-              acc[key] = data[key]; // Asignar el valor directamente para otros tipos de datos.
+              // Otros tipos (numeric, etc.): vacío -> null
+              acc[key] = isEmpty ? null : raw;
             }
           }
           return acc;
@@ -759,7 +775,6 @@ exports.uploadCsv = async (req, res) => {
           // Insertar los datos del CSV en la tabla usando 'bulkCreate' para realizar la inserción masiva.
           await Table.bulkCreate(results, { validate: true });
 
-          // Responder con un mensaje de éxito si la inserción es exitosa.
           res.status(201).json({ message: 'Datos insertados con éxito en la tabla' });
         } catch (error) {
           console.error('Error insertando datos en la tabla:', error);
@@ -769,8 +784,19 @@ exports.uploadCsv = async (req, res) => {
           });
         } finally {
           // Eliminar el archivo CSV temporal para liberar espacio.
-          fs.unlinkSync(filePath);
+          try {
+            fs.unlinkSync(filePath);
+          } catch (unlinkErr) {
+            console.error('Error eliminando archivo temporal:', unlinkErr);
+          }
         }
+      })
+      .on('error', (err) => {
+        console.error('Error procesando el archivo CSV:', err);
+        res.status(500).json({
+          message: 'Error procesando el archivo CSV',
+          error: err.message,
+        });
       });
   } catch (error) {
     console.error('Error procesando el archivo CSV:', error);
@@ -871,9 +897,6 @@ exports.downloadCsvData = async (req, res) => {
 exports.getTableRecords = async (req, res) => {
   const { table_name } = req.params; // Nombre de la tabla
   const filters = req.query; // Filtros pasados en la query string
-
-  // Log de depuración para ver el usuario autenticado
-  console.log('req.user:', req.user);
 
   try {
     // Validar que el nombre de la tabla sea válido
@@ -978,10 +1001,8 @@ exports.getTableRecords = async (req, res) => {
     // Log de los registros obtenidos
     // console.log('Registros obtenidos:', recordsWithTypes);
 
-    // Enviar respuesta con los registros procesados
     res.status(200).json(recordsWithTypes);
   } catch (error) {
-    // Manejo de errores y logs para depuración
     console.error('Error obteniendo los registros:', error);
     res.status(500).json({
       message: 'Error obteniendo los registros',

@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { Toaster } from 'react-hot-toast';
 import Header from './components/Header';
@@ -24,12 +24,35 @@ import PublicRecordCreate from './components/PublicRecordCreate'; // Importar el
 import SubsanacionPage from './components/SubsanacionPage'; // Importar el componente SubsanacionPage
 import DescargaMasiva from './components/DescargaMasiva';
 
+const REVISOR_DOCUMENTAL_ROLE_ID = '7';
+const RUTAS_SOLO_EMPRESAS = ['/escritorio', '/dynamic-tables', '/plan-inversion'];
+
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token');
   return token ? children : <Navigate to="/login" />;
 }
 
 PrivateRoute.propTypes = {
+  children: PropTypes.node.isRequired,
+};
+
+/** Para rol 7 (Revisor documental) solo permite Escritorio y módulo Empresas. Redirige al resto a /dynamic-tables. */
+function RestrictRevisorDocumental({ children }) {
+  const location = useLocation();
+  const roleId = localStorage.getItem('role_id');
+  if (roleId !== REVISOR_DOCUMENTAL_ROLE_ID) {
+    return children;
+  }
+  const pathname = location.pathname || '';
+  const permitido = RUTAS_SOLO_EMPRESAS.some((r) => pathname === r || pathname.startsWith(r + '/'))
+    || pathname.startsWith('/table/');
+  if (permitido) {
+    return children;
+  }
+  return <Navigate to="/dynamic-tables" replace />;
+}
+
+RestrictRevisorDocumental.propTypes = {
   children: PropTypes.node.isRequired,
 };
 
@@ -57,12 +80,14 @@ export default function App() {
           path="/escritorio"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <Content />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <Content />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -71,12 +96,14 @@ export default function App() {
           path="/usuarios"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <UsersList />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <UsersList />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -85,12 +112,14 @@ export default function App() {
           path="/usuarios/agregar"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <UserAdd />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <UserAdd />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -99,12 +128,14 @@ export default function App() {
           path="/usuarios/:id"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <UserView />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <UserView />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -114,12 +145,14 @@ export default function App() {
           path="/inscription"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <Inscription />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <Inscription />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -129,12 +162,14 @@ export default function App() {
           path="/list-tables"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <ListTables />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <ListTables />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -144,27 +179,31 @@ export default function App() {
           path="/inscriptions/create-table"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <UserAddTable />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <UserAddTable />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
 
-        {/* Ruta para listar las tablas dinámicas */}
+        {/* Ruta para listar las tablas dinámicas (módulo Empresas) */}
         <Route
           path="/dynamic-tables"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <DynamicTableList />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <DynamicTableList />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -174,12 +213,14 @@ export default function App() {
           path="/table/:tableName"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <DynamicTableList />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <DynamicTableList />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -189,12 +230,14 @@ export default function App() {
           path="/table/:tableName/record/:recordId"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <DynamicRecordEdit />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <DynamicRecordEdit />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -204,12 +247,14 @@ export default function App() {
           path="/provider-tables"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <ProviderTableList />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <ProviderTableList />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -219,12 +264,14 @@ export default function App() {
           path="/pi-tables"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <PiTableList />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <PiTableList />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -234,12 +281,14 @@ export default function App() {
           path="/plan-inversion/:id"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <PlanDeInversion />
-                <Footer />
-              </div>
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <PlanDeInversion />
+                  <Footer />
+                </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />
@@ -249,14 +298,16 @@ export default function App() {
           path="/descarga-masiva"
           element={
             <PrivateRoute>
-              <div className="wrapper">
-                <Header />
-                <Aside />
-                <div className="content-wrapper">
-                  <DescargaMasiva />
+              <RestrictRevisorDocumental>
+                <div className="wrapper">
+                  <Header />
+                  <Aside />
+                  <div className="content-wrapper">
+                    <DescargaMasiva />
+                  </div>
+                  <Footer />
                 </div>
-                <Footer />
-              </div>
+              </RestrictRevisorDocumental>
             </PrivateRoute>
           }
         />

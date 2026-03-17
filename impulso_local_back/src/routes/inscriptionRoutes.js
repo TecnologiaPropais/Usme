@@ -3,7 +3,7 @@ const router = express.Router();
 const inscriptionController = require('../controllers/inscriptionController');
 const multer = require('multer');
 const upload = multer({ dest: 'uploads/' });
-const { authenticateJWT, authorizePermission } = require('../middlewares/authMiddleware');
+const { authenticateJWT, authorizePermission, denyRevisorDocumentalFileWrite } = require('../middlewares/authMiddleware');
 
 
 // Ruta para crear un registro en inscription_caracterizacion sin autenticación
@@ -67,7 +67,7 @@ router.get('/tables/:table_name/records', authenticateJWT, authorizePermission('
 router.get('/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('view_tables'), inscriptionController.getTableRecordById);
 
 // Ruta para actualizar un registro específico (requiere permiso 'manage_tables')
-router.put('/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updateTableRecord);
+router.put('/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), denyRevisorDocumentalFileWrite, inscriptionController.updateTableRecord);
 
 // Ruta para envío manual de correos (solo para estados 6 y 3)
 router.post('/tables/:table_name/record/:record_id/send-email', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.sendManualEmail);
@@ -109,6 +109,7 @@ router.delete(
   '/tables/:table_name/record/:record_id/file/:file_id',
   authenticateJWT,
   authorizePermission('manage_tables'),
+  denyRevisorDocumentalFileWrite,
   inscriptionController.deleteFile
 );
 
@@ -123,6 +124,7 @@ router.get(
 router.delete(
   '/pi/tables/:table_name/record/:record_id/file/:file_name',
   authenticateJWT,
+  denyRevisorDocumentalFileWrite,
   inscriptionController.deletePiFile
 );
 
@@ -176,7 +178,7 @@ router.get(
 router.post('/pi/tables/:table_name/record', inscriptionController.createTableRecord);
 
 // Ruta para actualizar un registro existente en una tabla dinámica de PI (nuevo controlador)
-router.put('/pi/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), inscriptionController.updatePiRecord);
+router.put('/pi/tables/:table_name/record/:record_id', authenticateJWT, authorizePermission('manage_tables'), denyRevisorDocumentalFileWrite, inscriptionController.updatePiRecord);
 
 // Ruta para guardar la configuración de columnas visibles para una tabla específica
 router.post(
@@ -194,7 +196,7 @@ router.get(
   inscriptionController.getVisibleColumns
 );
 
-// Ruta para actualizar el cumplimiento de un archivo asociado a un registro (requiere permiso 'manage_tables')
+// Ruta para actualizar el cumplimiento de un archivo asociado a un registro (Revisor documental puede; resto requiere 'manage_tables')
 router.put(
   '/tables/:table_name/record/:record_id/file/:file_id/compliance',
   authenticateJWT,

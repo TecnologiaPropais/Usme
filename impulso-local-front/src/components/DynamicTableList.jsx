@@ -112,12 +112,12 @@ export default function DynamicTableList() {
 
       let filteredRecords = recordsResponse.data;
 
-      // Filtrar registros según el role_id y el asesor
-        if (loggedUserRoleId === '4' && loggedUserId) {
-          filteredRecords = filteredRecords.filter(
-            (record) => String(record.Asesor) === String(loggedUserId)
-          );
-        }
+      // Filtrar registros: Asesor (4) y Revisor documental (7) solo ven los que tienen asignado su user_id en la columna Asesor
+      if ((loggedUserRoleId === '4' || loggedUserRoleId === '7') && loggedUserId) {
+        filteredRecords = filteredRecords.filter(
+          (record) => String(record.Asesor) === String(loggedUserId)
+        );
+      }
 
       // Obtener datos relacionados
       const relatedDataResponse = await axios.get(
@@ -441,9 +441,10 @@ export default function DynamicTableList() {
                                     <button
                                       className="btn btn-info btn-sm"
                                       onClick={() => navigate(`/table/inscription_caracterizacion/record/${record.id}`)}
-                                      title="Editar registro"
+                                      title={getLoggedUserRoleId() === '7' ? 'Ver registro' : 'Editar registro'}
                                     >
-                                      <i className="fas fa-edit"></i> Editar
+                                      <i className={getLoggedUserRoleId() === '7' ? 'fas fa-eye' : 'fas fa-edit'}></i>{' '}
+                                      {getLoggedUserRoleId() === '7' ? 'Ver' : 'Editar'}
                                     </button>
                                   </td>
                                 </tr>

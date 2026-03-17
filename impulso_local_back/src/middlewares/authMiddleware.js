@@ -75,7 +75,35 @@ const authorizePermission = (requiredPermission) => {
   };
 };
 
+// Nombre del rol que solo puede visualizar archivos (no editar ni eliminar)
+const REVISOR_DOCUMENTAL_ROLE_NAME = 'Revisor documental';
 
+/**
+ * Middleware que bloquea al rol "Revisor documental" en operaciones de edición o eliminación de archivos.
+ * Ese rol tiene los mismos permisos que Asesor pero solo puede visualizar archivos.
+ */
+const denyRevisorDocumentalFileWrite = async (req, res, next) => {
+  try {
+    const roleId = req.user?.role;
+    if (!roleId) {
+      return next();
+    }
+    const role = await Role.findByPk(roleId, { attributes: ['role_name'] });
+    if (!role || role.role_name !== REVISOR_DOCUMENTAL_ROLE_NAME) {
+      return next();
+    }
+    return res.status(403).json({
+      message: 'El rol Revisor documental no puede editar ni eliminar archivos. Solo puede visualizar.',
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error verificando rol', error: error.message });
+  }
+};
 
-module.exports = { authenticateJWT, authenticateRole, authorizePermission };
+module.exports = {
+  authenticateJWT,
+  authenticateRole,
+  authorizePermission,
+  denyRevisorDocumentalFileWrite,
+};
 

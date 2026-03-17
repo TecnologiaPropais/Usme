@@ -51,7 +51,8 @@ export default function ListTables() {
       setTables(fetchedTables);
       setLoading(false);
     } catch (error) {
-      setError(error.response?.data?.message || error.message || 'Error obteniendo las tablas');
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(msg || 'Error obteniendo las tablas');
       setLoading(false);
     }
   }, [tableType]);
@@ -215,8 +216,14 @@ export default function ListTables() {
         },
       });
       alert('Archivo CSV cargado con éxito');
+      setError(null);
+      fetchTables(); // Recargar lista de tablas por si cambió algo
     } catch (error) {
-      setError('Error cargando el archivo CSV');
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+      const detalleServidor = error.response?.data?.error || error.message;
+      // Log en consola del navegador para identificar errores en futuros cargues
+      console.error('[ListTables] Error insertando datos en la tabla:', tableName, detalleServidor);
+      setError(msg ? `Error cargando el archivo CSV: ${msg}` : 'Error cargando el archivo CSV');
     }
   };
 

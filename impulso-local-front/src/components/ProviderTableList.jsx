@@ -151,8 +151,8 @@ export default function ProviderTableList() {
       setRecords(recordsResponse.data);
       setLoading(false);
     } catch (error) {
-      console.error('Error en fetchTableData:', error);
-      setError('Error obteniendo los registros');
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+      setError(msg || 'Error obteniendo los registros');
       setLoading(false);
     }
   };
@@ -176,7 +176,8 @@ export default function ProviderTableList() {
         setSelectedTable('provider_proveedores');
         fetchTableData('provider_proveedores');
       } catch (error) {
-        setError('Error obteniendo las tablas');
+        const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+        setError(msg || 'Error obteniendo las tablas');
       }
     };
 
