@@ -10,6 +10,7 @@ export default function FormulacionProvTab({ id }) {
   const [selectedRubro, setSelectedRubro] = useState('');
   const [elementos, setElementos] = useState([]);
   const [selectedElemento, setSelectedElemento] = useState('');
+  const [elementoIdsDelRubroActual, setElementoIdsDelRubroActual] = useState([]); // IDs de elementos del rubro (para el dropdown, no se pierden al filtrar)
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -32,10 +33,22 @@ export default function FormulacionProvTab({ id }) {
     "Nombre proveedor",
     "Rubro",
     "Elemento",
-    "Descripcion corta",
+    //"Descripcion corta",
     "Valor catalogo",
-    "Precio",
+    //"Precio",
     "Puntuacion evaluacion"
+  ];
+
+  // Columnas visibles en la tabla "Productos Seleccionados". Quita o comenta las que no quieras mostrar.
+  const productosSeleccionadosColumnas = [
+    'prioridad',
+    'nombreProveedor',
+    'rubro',
+    'elemento',
+    //'descripcion',
+    'precioUnitario',
+    'cantidad',
+    'total',
   ];
 
   useEffect(() => {
@@ -79,6 +92,7 @@ export default function FormulacionProvTab({ id }) {
     const fetchRecords = async () => {
       if (!selectedRubro) {
         setRecords([]);
+        setElementoIdsDelRubroActual([]);
         return;
       }
 
@@ -94,7 +108,16 @@ export default function FormulacionProvTab({ id }) {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        setRecords(recordsResponse.data);
+        const data = recordsResponse.data;
+        setRecords(data);
+
+        // Guardar los IDs de elementos del rubro solo cuando cargamos sin filtro de elemento,
+        // así el dropdown sigue mostrando todas las opciones aunque el usuario filtre por un elemento
+        if (!selectedElemento && data.length > 0) {
+          const ids = [...new Set(data.map((r) => r.Elemento).filter(Boolean).map(String))];
+          setElementoIdsDelRubroActual(ids);
+        }
+
         setLoading(false);
       } catch (error) {
         console.error('Error obteniendo los registros:', error);
@@ -108,6 +131,7 @@ export default function FormulacionProvTab({ id }) {
 
   // Mover esta función fuera del useEffect
   const fetchPiFormulacionRecords = async () => {
+    const tFetchInicio = performance.now();
     try {
       const token = localStorage.getItem('token');
       const piFormulacionUrl = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/records?caracterizacion_id=${id}`;
@@ -115,12 +139,14 @@ export default function FormulacionProvTab({ id }) {
         headers: { Authorization: `Bearer ${token}` },
       });
       const piRecords = response.data;
+      console.log(`[fetchPiFormulacionRecords] GET pi_formulacion_prov — ${Math.round(performance.now() - tFetchInicio)} ms (${piRecords?.length ?? 0} registros)`);
 
       // Filtrar solo IDs válidos
       const providerIds = piRecords
         .map((piRecord) => piRecord.rel_id_prov)
         .filter((id) => id !== undefined && id !== null);
 
+      const tAntesProviders = performance.now();
       const providerPromises = providerIds.map((providerId) => {
         const providerUrl = `${config.urls.inscriptions.base}/tables/${tableName}/record/${providerId}`;
         return axios.get(providerUrl, {
@@ -130,6 +156,7 @@ export default function FormulacionProvTab({ id }) {
 
       const providersResponses = await Promise.all(providerPromises);
       const providersData = providersResponses.map((res) => res.data.record);
+      console.log(`[fetchPiFormulacionRecords] GET ${providerIds.length} proveedores (en paralelo) — ${Math.round(performance.now() - tAntesProviders)} ms`);
 
       const combinedData = piRecords.map((piRecord) => {
         const providerData = providersData.find(
@@ -142,8 +169,9 @@ export default function FormulacionProvTab({ id }) {
       });
 
       setPiFormulacionRecords(combinedData);
+      console.log(`[fetchPiFormulacionRecords] Total — ${Math.round(performance.now() - tFetchInicio)} ms`);
     } catch (error) {
-      console.error('Error obteniendo los registros de pi_formulacion:', error);
+      console.error('[fetchPiFormulacionRecords] Error tras', Math.round(performance.now() - tFetchInicio), 'ms:', error);
     }
   };
 
@@ -190,6 +218,13 @@ export default function FormulacionProvTab({ id }) {
     setSelectedElemento(e.target.value);
     setSearchTerm('');
   };
+
+  // Elementos que pertenecen al rubro seleccionado (lista fija al elegir rubro, no cambia al filtrar por elemento)
+  const elementosDelRubro = useMemo(() => {
+    if (!selectedRubro || elementoIdsDelRubroActual.length === 0) return [];
+    const idsSet = new Set(elementoIdsDelRubroActual);
+    return elementos.filter((el) => idsSet.has(String(el.id)));
+  }, [selectedRubro, elementoIdsDelRubroActual, elementos]);
 
   const getElementoName = (elementoId) => {
     const elemento = elementos.find((el) => String(el.id) === String(elementoId));
@@ -241,63 +276,87 @@ export default function FormulacionProvTab({ id }) {
   };
 
   const handleApprovalChange = async (record, field, value) => {
-    try {
-      const token = localStorage.getItem('token');
-      const userId = localStorage.getItem('id');
-      const existingPiData = getPiFormulacionData(record.id);
-      const cantidad = existingPiData.Cantidad || 1;
+    const label = field === 'pre-Seleccion' ? 'Pre-selección' : field === 'Seleccion' ? 'Selección' : field;
+    const token = localStorage.getItem('token');
+    const userId = localStorage.getItem('id');
+    const existingPiData = getPiFormulacionData(record.id);
+    const cantidad = existingPiData.Cantidad || 1;
 
-      const recordData = {
-        caracterizacion_id: id,
-        rel_id_prov: record.id,
-        Cantidad: cantidad,
-        user_id: userId,
-        [field]: value,
-      };
+    const recordData = {
+      caracterizacion_id: id,
+      rel_id_prov: record.id,
+      Cantidad: cantidad,
+      user_id: userId,
+      [field]: value,
+    };
 
-      if (field === "Seleccion") {
-        if (value === true) {
-          // Ver cuántos productos ya están seleccionados:
-          const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
-          const occupiedOrders = currentlySelected
-            .map(r => r.selectionorder)
-            .filter(o => o !== null && o !== undefined);
+    if (field === "Seleccion") {
+      if (value === true) {
+        const currentlySelected = piFormulacionRecords.filter(r => r.Seleccion);
+        const occupiedOrders = currentlySelected
+          .map(r => r.selectionorder)
+          .filter(o => o !== null && o !== undefined);
+        const possibleOrders = [1, 2, 3];
+        const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
 
-          // Espacios disponibles son 1,2,3
-          const possibleOrders = [1, 2, 3];
-          const freeOrder = possibleOrders.find(order => !occupiedOrders.includes(order));
-
-          if (!freeOrder) {
-            console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
-            // Revertimos el checkbox en interfaz, sin actualizar en BD.
-            return;
-          }
-          recordData.selectionorder = freeOrder;
-        } else {
-          recordData.selectionorder = null;
+        if (!freeOrder) {
+          console.log("Ya hay 3 productos seleccionados. No se puede seleccionar otro.");
+          return;
         }
+        recordData.selectionorder = freeOrder;
+      } else {
+        recordData.selectionorder = null;
       }
+    }
 
-      const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
+    // Guardar estado anterior por si hay que revertir
+    const estadoAnterior = piFormulacionRecords;
 
-      console.log('Enviando recordData:', recordData);
+    // 1) Actualización optimista: el checkbox se ve cambiado al instante
+    if (existingPiData.id) {
+      setPiFormulacionRecords((prev) =>
+        prev.map((pi) =>
+          pi.rel_id_prov === record.id
+            ? {
+                ...pi,
+                [field]: value,
+                ...(field === 'Seleccion' ? { selectionorder: recordData.selectionorder } : {}),
+              }
+            : pi
+        )
+      );
+    } else {
+      setPiFormulacionRecords((prev) => [
+        ...prev,
+        {
+          ...recordData,
+          providerData: record,
+          id: undefined,
+        },
+      ]);
+    }
 
+    const endpoint = `${config.urls.inscriptions.base}/pi/tables/${piFormulacionTableName}/record`;
+
+    try {
       if (existingPiData.id) {
         await axios.put(`${endpoint}/${existingPiData.id}`, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
       } else {
-        console.log('Enviando recordData (POST):', recordData);
         const res = await axios.post(endpoint, recordData, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        recordData.id = res.data.id;
+        const newId = res.data.id;
+        setPiFormulacionRecords((prev) =>
+          prev.map((pi) =>
+            pi.rel_id_prov === record.id && pi.id === undefined ? { ...pi, id: newId } : pi
+          )
+        );
       }
-
-      // Refrescar los datos después de la actualización
-      await fetchPiFormulacionRecords();
     } catch (error) {
-      console.error('Error al cambiar la aprobación:', error);
+      console.error(`[Checkbox ${label}] Error al guardar:`, error);
+      setPiFormulacionRecords(estadoAnterior);
     }
   };
 
@@ -394,7 +453,7 @@ export default function FormulacionProvTab({ id }) {
               disabled={!selectedRubro || isRole5 || isRole3}
             >
               <option value="">-- Selecciona un elemento --</option>
-              {elementos.map((elemento) => (
+              {elementosDelRubro.map((elemento) => (
                 <option key={elemento.id} value={elemento.id}>
                   {elemento.Elemento}
                 </option>
@@ -553,14 +612,14 @@ export default function FormulacionProvTab({ id }) {
               <table className="table tabla-moderna">
                 <thead>
                   <tr>
-                    <th className="text-center">Prioridad</th>
-                    <th>Nombre proveedor</th>
-                    <th>Rubro</th>
-                    <th>Elemento</th>
-                    <th>Descripción</th>
-                    <th>Precio Unitario</th>
-                    <th className="text-center columna-cantidad">Cantidad</th>
-                    <th>Total</th>
+                    {productosSeleccionadosColumnas.includes('prioridad') && <th className="text-center">Prioridad</th>}
+                    {productosSeleccionadosColumnas.includes('nombreProveedor') && <th>Nombre proveedor</th>}
+                    {productosSeleccionadosColumnas.includes('rubro') && <th>Rubro</th>}
+                    {productosSeleccionadosColumnas.includes('elemento') && <th>Elemento</th>}
+                    {productosSeleccionadosColumnas.includes('descripcion') && <th>Descripción</th>}
+                    {productosSeleccionadosColumnas.includes('precioUnitario') && <th>Precio Unitario</th>}
+                    {productosSeleccionadosColumnas.includes('cantidad') && <th className="text-center columna-cantidad">Cantidad</th>}
+                    {productosSeleccionadosColumnas.includes('total') && <th>Total</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -576,14 +635,14 @@ export default function FormulacionProvTab({ id }) {
 
                     return (
                       <tr key={piRecord.rel_id_prov}>
-                        <td className="text-center">{piRecord.selectionorder || ''}</td>
-                        <td>{provider["Nombre Proveedor"]}</td>
-                        <td>{getRubroName(provider.Rubro)}</td>
-                        <td>{getElementoName(provider.Elemento)}</td>
-                        <td>{provider["Descripcion corta"] || ''}</td>
-                        <td>{precioFormateado}</td>
-                        <td className="text-center columna-cantidad">{cantidad}</td>
-                        <td>{totalFormateado}</td>
+                        {productosSeleccionadosColumnas.includes('prioridad') && <td className="text-center">{piRecord.selectionorder || ''}</td>}
+                        {productosSeleccionadosColumnas.includes('nombreProveedor') && <td>{provider["Nombre Proveedor"]}</td>}
+                        {productosSeleccionadosColumnas.includes('rubro') && <td>{getRubroName(provider.Rubro)}</td>}
+                        {productosSeleccionadosColumnas.includes('elemento') && <td>{getElementoName(provider.Elemento)}</td>}
+                        {productosSeleccionadosColumnas.includes('descripcion') && <td>{provider["Descripcion corta"] || ''}</td>}
+                        {productosSeleccionadosColumnas.includes('precioUnitario') && <td>{precioFormateado}</td>}
+                        {productosSeleccionadosColumnas.includes('cantidad') && <td className="text-center columna-cantidad">{cantidad}</td>}
+                        {productosSeleccionadosColumnas.includes('total') && <td>{totalFormateado}</td>}
                       </tr>
                     );
                   })}

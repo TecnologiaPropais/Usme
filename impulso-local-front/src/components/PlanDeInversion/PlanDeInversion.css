@@ -207,7 +207,7 @@ input[type=number] {
 
 .columna-preseleccion, .columna-seleccion {
   max-width: 150px;
-  width: 150px;
+  width: 90px;
   min-width: 80px;
   text-align: center;
 }
@@ -221,21 +221,21 @@ input[type=number] {
 
 .columna-rubro {
   max-width: 120px;
-  width: 120px;
+  width: 100px;
   min-width: 80px;
   text-align: center;
 }
 
 .columna-elemento {
-  max-width: 150px;
-  width: 150px;
+  max-width: 200px;
+  width: 180px;
   min-width: 80px;
   text-align: center;
 }
 
 .columna-cantidad {
-  max-width: 150px;
-  width: 150px;
+  max-width: 90px;
+  width: 90px;
   min-width: 80px;
   text-align: center;
 }

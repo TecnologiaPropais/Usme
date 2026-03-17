@@ -192,6 +192,7 @@ export default function GenerarFichaTab({ id }) {
         }
 
         const planRows = piFormulacionProvRecords
+          .filter((piRec) => piRec.Seleccion === true)
           .slice()
           .sort((a, b) => (a.selectionorder ?? Infinity) - (b.selectionorder ?? Infinity))
           .map((piRec) => {
@@ -317,9 +318,11 @@ export default function GenerarFichaTab({ id }) {
       yPosition += 30;
 
       // 1. Título Principal (cambiado a: PLAN DE INVERSIÓN DEL EMPRENDIMIENTO)
-      doc.setFontSize(fontSizes.title);
+      doc.setFontSize(fontSizes.subtitle);
       doc.setFont(undefined, 'bold');
       doc.setTextColor(0, 0, 0);
+      // Padding top (aprox. un salto de línea)
+      yPosition += 12;
       doc.text("PLAN DE INVERSIÓN DEL EMPRENDIMIENTO", pageWidth / 2, yPosition, { align: 'center' });
 
       yPosition += 30;
@@ -423,15 +426,14 @@ export default function GenerarFichaTab({ id }) {
       doc.setFont(undefined, 'normal');
       yPosition += 20;
 
-      const formulacionPlanHeaders = ['Tipo de bien', 'Bien seleccionado', 'Descripción del bien', 'Cantidad'];
+      const formulacionPlanHeaders = ['Tipo de bien', 'Bien seleccionado', 'Cantidad'];
       const formulacionPlanBody = formulacionPlanData.length > 0
         ? formulacionPlanData.map((row) => [
             row.tipoBien,
             row.bienSeleccionado,
-            row.descripcionBien,
             row.cantidad,
           ])
-        : [['Sin registros', '', '', '']];
+        : [['Sin registros', '', '']];
 
       doc.autoTable({
         startY: yPosition,
@@ -442,8 +444,26 @@ export default function GenerarFichaTab({ id }) {
         tableWidth: 'auto',
         headStyles: { fillColor: tableColor, textColor: [255, 255, 255], fontStyle: 'bold' },
         margin: { left: margin, right: margin },
-        columnStyles: {
-          2: { cellWidth: 'auto' }, // Descripción del bien puede ser larga
+        columnStyles: (() => {
+          // Nota: 20% + 80% + 20% excede 100%. Normalizamos a 20% / 60% / 20
+          // manteniendo la intención de que "Bien seleccionado" sea la columna dominante.
+          const availableWidth = pageWidth - margin * 2;
+          return {
+            0: { cellWidth: availableWidth * 0.2, halign: 'center' }, // Tipo de bien
+            1: { cellWidth: availableWidth * 0.6, halign: 'left' },   // Bien seleccionado
+            2: { cellWidth: availableWidth * 0.2, halign: 'center' }, // Cantidad
+          };
+        })(),
+        didParseCell: (data) => {
+          // Alinear títulos vs contenido por columna
+          if (data.section === 'head') {
+            if (data.column.index === 0 || data.column.index === 2) data.cell.styles.halign = 'center';
+            if (data.column.index === 1) data.cell.styles.halign = 'left';
+          }
+          if (data.section === 'body') {
+            if (data.column.index === 0 || data.column.index === 2) data.cell.styles.halign = 'center';
+            if (data.column.index === 1) data.cell.styles.halign = 'left';
+          }
         },
         didDrawPage: (data) => {
           yPosition = data.cursor.y;
@@ -457,6 +477,7 @@ export default function GenerarFichaTab({ id }) {
       doc.setFont(undefined, 'bold');
       yPosition += 30;
       doc.text("CONCEPTO DE VIABILIDAD DE PLAN DE INVERSIÓN", pageWidth / 2, yPosition, { align: 'center' });
+      yPosition += 12;
 
       doc.setFontSize(fontSizes.normal);
       doc.setFont(undefined, 'normal');
