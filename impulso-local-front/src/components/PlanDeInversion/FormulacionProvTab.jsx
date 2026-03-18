@@ -427,14 +427,14 @@ export default function FormulacionProvTab({ id }) {
         <>
           {/* 2. Deshabilitar selector de Rubro si es role 5 */}
           <div className="form-group">
-            <label>Rubro</label>
+            <label>Kit</label>
             <select
               className="form-control"
               value={selectedRubro}
               onChange={handleRubroChange}
               disabled={isRole5 || isRole3}
             >
-              <option value="">-- Selecciona un rubro --</option>
+              <option value="">-- Selecciona un kit --</option>
               {rubros.map((rubro) => (
                 <option key={rubro.id} value={rubro.id}>
                   {rubro.Rubro}
@@ -490,7 +490,7 @@ export default function FormulacionProvTab({ id }) {
                         : ''
                     }
                   >
-                    {field.column_name.replace('_', ' ')}
+                    {field.column_name === 'Rubro' ? 'Kit' : field.column_name.replace('_', ' ')}
                   </th>
                 ))}
                 <th className="text-center columna-cantidad">Cantidad</th>
@@ -614,7 +614,7 @@ export default function FormulacionProvTab({ id }) {
                   <tr>
                     {productosSeleccionadosColumnas.includes('prioridad') && <th className="text-center">Prioridad</th>}
                     {productosSeleccionadosColumnas.includes('nombreProveedor') && <th>Nombre proveedor</th>}
-                    {productosSeleccionadosColumnas.includes('rubro') && <th>Rubro</th>}
+                    {productosSeleccionadosColumnas.includes('rubro') && <th>Kit</th>}
                     {productosSeleccionadosColumnas.includes('elemento') && <th>Elemento</th>}
                     {productosSeleccionadosColumnas.includes('descripcion') && <th>Descripción</th>}
                     {productosSeleccionadosColumnas.includes('precioUnitario') && <th>Precio Unitario</th>}
@@ -659,7 +659,7 @@ export default function FormulacionProvTab({ id }) {
               <table className="table tabla-moderna">
                 <thead>
                   <tr>
-                    <th>Rubro</th>
+                    <th>Kit</th>
                     <th>Valor</th>
                   </tr>
                 </thead>
@@ -673,12 +673,12 @@ export default function FormulacionProvTab({ id }) {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <td>Total</td>
+                    <td style={{ color: 'black', fontWeight: 'bold' }}>Total</td>
                     <td>{totalInversion}</td>
                   </tr>
                   <tr>
-                    <td style={{ color: 'red', fontWeight: 'bold' }}>Valor asignado</td>
-                    <td style={{ color: 'red', fontWeight: 'bold' }}>
+                    {/*<td style={{ color: 'red', fontWeight: 'bold' }}>Valor asignado</td>*/}
+                    {/*<td style={{ color: 'red', fontWeight: 'bold' }}>
                       {priorizacionCapitalizacion === null || priorizacionCapitalizacion === undefined || priorizacionCapitalizacion === ''
                         ? 'Sin asignación de priorización'
                         : priorizacionCapitalizacion === 'Víctima del conflicto armado'
@@ -686,7 +686,7 @@ export default function FormulacionProvTab({ id }) {
                         : priorizacionCapitalizacion === 'MyPyme/Emprendimiento'
                         ? '$ 3.000.000'
                         : 'Sin asignación de priorización'}
-                    </td>
+                    </td>*/}	
                   </tr>
                 </tfoot>
               </table>

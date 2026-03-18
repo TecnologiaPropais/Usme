@@ -1,6 +1,6 @@
 // GenerarFichaTab.jsx
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import axios from 'axios';
@@ -22,6 +22,9 @@ export default function GenerarFichaTab({ id }) {
   const [relatedData, setRelatedData] = useState({});
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+
+  // Evita disparar el fetch dos veces para el mismo `id` durante el mismo montaje (p.ej. StrictMode en dev).
+  const loadedForIdRef = useRef(null);
 
   // Estados para almacenar los nombres del asesor y del emprendedor
   const [asesorNombre, setAsesorNombre] = useState('');
@@ -69,6 +72,8 @@ export default function GenerarFichaTab({ id }) {
       }
 
       try {
+        const tFetchStart = performance.now();
+        console.log(`[GenerarFichaTab] fetchData START (id=${id})`);
         setLoading(true);
         const token = localStorage.getItem('token');
         if (!token) {
@@ -78,7 +83,17 @@ export default function GenerarFichaTab({ id }) {
           return;
         }
 
+        // Helper para medir tiempos por endpoint
+        const timedGet = async (label, url) => {
+          const tStart = performance.now();
+          const res = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+          const ms = Math.round(performance.now() - tStart);
+          console.log(`[GenerarFichaTab] GET ${label} -> ${ms}ms`);
+          return res;
+        };
+
         // Realizar solicitudes en paralelo
+        const tPromiseAllStart = performance.now();
         const [
           caracterizacionResponse,
           fieldsResponse,
@@ -86,12 +101,31 @@ export default function GenerarFichaTab({ id }) {
           propuestaMejoraResponse,
           formulacionResponse
         ] = await Promise.all([
-          axios.get(`${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${config.urls.inscriptions.pi}/tables/pi_datos/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${config.urls.inscriptions.pi}/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(`${config.urls.inscriptions.pi}/tables/pi_formulacion/records?caracterizacion_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+          timedGet(
+            'inscription_caracterizacion/record',
+            `${config.urls.inscriptions.tables}/inscription_caracterizacion/record/${id}`
+          ),
+          timedGet(
+            'inscription_caracterizacion/related-data',
+            `${config.urls.inscriptions.pi}/tables/inscription_caracterizacion/related-data`
+          ),
+          timedGet(
+            'pi_datos/records',
+            `${config.urls.inscriptions.pi}/tables/pi_datos/records?caracterizacion_id=${id}`
+          ),
+          timedGet(
+            'pi_propuesta_mejora/records',
+            `${config.urls.inscriptions.pi}/tables/pi_propuesta_mejora/records?caracterizacion_id=${id}`
+          ),
+          timedGet(
+            'pi_formulacion/records',
+            `${config.urls.inscriptions.pi}/tables/pi_formulacion/records?caracterizacion_id=${id}`
+          ),
         ]);
+
+        console.log(
+          `[GenerarFichaTab] Promise.all initial fetch -> ${Math.round(performance.now() - tPromiseAllStart)}ms`
+        );
 
         // 1. Procesar datos de `inscription_caracterizacion`
         console.log("Datos de caracterización:", caracterizacionResponse.data.record);
@@ -160,10 +194,16 @@ export default function GenerarFichaTab({ id }) {
         // 8b. Obtener datos para "Formulación Plan de Inversión" (pi_formulacion_prov + provider_proveedores + provider_elemento)
         const formulacionProvUrl = `${config.urls.inscriptions.pi}/tables/pi_formulacion_prov/records?caracterizacion_id=${id}`;
         const elementosUrl = `${config.urls.inscriptions.tables}/provider_elemento/records`;
+
+        const tFormulacionProvStart = performance.now();
         const [formulacionProvResponse, elementosResponse] = await Promise.all([
-          axios.get(formulacionProvUrl, { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get(elementosUrl, { headers: { Authorization: `Bearer ${token}` } }),
+          timedGet('pi_formulacion_prov/records', formulacionProvUrl),
+          timedGet('provider_elemento/records', elementosUrl),
         ]);
+        console.log(
+          `[GenerarFichaTab] Promise.all (pi_formulacion_prov + provider_elemento) -> ${Math.round(performance.now() - tFormulacionProvStart)}ms`
+        );
+
         const piFormulacionProvRecords = formulacionProvResponse.data || [];
         const elementosList = elementosResponse.data || [];
 
@@ -178,19 +218,44 @@ export default function GenerarFichaTab({ id }) {
             .filter((pid) => pid !== undefined && pid !== null)
         )];
         const providerMap = {};
-        for (const providerId of providerIdsUniq) {
-          try {
-            const provRes = await axios.get(
-              `${config.urls.inscriptions.tables}/provider_proveedores/record/${providerId}`,
-              { headers: { Authorization: `Bearer ${token}` } }
-            );
-            const record = provRes.data.record || provRes.data;
-            providerMap[String(providerId)] = record;
-          } catch {
-            providerMap[String(providerId)] = null;
-          }
-        }
+        const tProvidersStart = performance.now();
+        let slowestProvider = { id: null, ms: 0 };
 
+        // Fetch con concurrencia limitada para no saturar la API, pero evitar hacerlo 1-por-1.
+        const concurrencyLimit = 4; // Ajusta si ves errores/rate-limit
+        let nextIndex = 0;
+        const worker = async () => {
+          while (nextIndex < providerIdsUniq.length) {
+            const providerId = providerIdsUniq[nextIndex];
+            nextIndex += 1;
+
+            try {
+              const tProviderStart = performance.now();
+              const provRes = await axios.get(
+                `${config.urls.inscriptions.tables}/provider_proveedores/record/${providerId}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const record = provRes.data.record || provRes.data;
+              providerMap[String(providerId)] = record;
+
+              const providerMs = performance.now() - tProviderStart;
+              if (providerMs > slowestProvider.ms) {
+                slowestProvider = { id: providerId, ms: providerMs };
+              }
+            } catch {
+              providerMap[String(providerId)] = null;
+            }
+          }
+        };
+
+        const workerCount = Math.min(concurrencyLimit, providerIdsUniq.length);
+        await Promise.all(Array.from({ length: workerCount }, worker));
+
+        console.log(
+          `[GenerarFichaTab] provider_proveedores (concurrencia ${workerCount}/${concurrencyLimit}) -> ${Math.round(performance.now() - tProvidersStart)}ms (providers=${providerIdsUniq.length}, slowest=${slowestProvider.id ?? 'n/a'} ${Math.round(slowestProvider.ms)}ms)`
+        );
+
+        const tPlanRowsStart = performance.now();
         const planRows = piFormulacionProvRecords
           .filter((piRec) => piRec.Seleccion === true)
           .slice()
@@ -204,8 +269,10 @@ export default function GenerarFichaTab({ id }) {
             return { tipoBien, bienSeleccionado, descripcionBien, cantidad };
           });
         setFormulacionPlanData(planRows);
+        console.log(`[GenerarFichaTab] build formulacionPlanData -> ${Math.round(performance.now() - tPlanRowsStart)}ms`);
 
         // 9. Agrupar Rubros y calcular total inversión
+        const tRubrosStart = performance.now();
         const rubrosOptions = [
           "Maquinaria y equipo",
           "Insumos/Materias primas",
@@ -238,6 +305,7 @@ export default function GenerarFichaTab({ id }) {
         console.log("Finalizando la carga de datos. Seteando loading a false.");
         setLoading(false);
         console.log("Estado de loading:", loading);
+        console.log(`[GenerarFichaTab] fetchData END (id=${id}) -> ${Math.round(performance.now() - tFetchStart)}ms`);
       } catch (error) {
         console.error("Error al obtener los datos:", error);
         setErrorMsg("Error al obtener los datos. Por favor, inténtalo nuevamente más tarde.");
@@ -245,7 +313,10 @@ export default function GenerarFichaTab({ id }) {
       }
     };
 
-    fetchData();
+    if (loadedForIdRef.current !== id) {
+      loadedForIdRef.current = id;
+      fetchData();
+    }
   }, [id]); // Eliminamos `relatedData` de las dependencias
 
   // Función para verificar si hay que cortar página
@@ -263,6 +334,8 @@ export default function GenerarFichaTab({ id }) {
 
   // Función para generar el PDF completo
   const generateFichaPDF = () => {
+    const tClickStart = performance.now();
+    console.log(`[GenerarFichaTab] generateFichaPDF CLICK (id=${id})`);
     const doc = new jsPDF('p', 'pt', 'a4');
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 40;
@@ -289,7 +362,14 @@ export default function GenerarFichaTab({ id }) {
     const img = new Image();
     img.src = bannerImagePath;
     img.onload = () => {
+      const tImgOnLoad = performance.now();
+      console.log(
+        `[GenerarFichaTab] banner image loaded -> ${Math.round(tImgOnLoad - tClickStart)}ms (id=${id})`
+      );
+      const tBuildStart = performance.now();
+
       const imgData = getImageDataUrl(img);
+      console.log(`[GenerarFichaTab] image conversion to base64 -> ${Math.round(performance.now() - tImgOnLoad)}ms`);
 
       // Encabezado con imagen
       doc.addImage(imgData, 'JPEG', margin, 40, maxLineWidth, 60);
@@ -396,6 +476,7 @@ export default function GenerarFichaTab({ id }) {
           propuesta: item["Propuesta de mejora"] || 'No disponible',
         }));
 
+        const tAutoPropuestaStart = performance.now();
         doc.autoTable({
           startY: yPosition,
           head: [propuestaHeaders.map(col => col.header)],
@@ -409,6 +490,7 @@ export default function GenerarFichaTab({ id }) {
             yPosition = data.cursor.y;
           },
         });
+        console.log(`[GenerarFichaTab] autoTable (propuestaMejora) -> ${Math.round(performance.now() - tAutoPropuestaStart)}ms`);
 
         yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
       } else {
@@ -435,6 +517,7 @@ export default function GenerarFichaTab({ id }) {
           ])
         : [['Sin registros', '', '']];
 
+      const tAutoFormulacionStart = performance.now();
       doc.autoTable({
         startY: yPosition,
         head: [formulacionPlanHeaders],
@@ -469,6 +552,7 @@ export default function GenerarFichaTab({ id }) {
           yPosition = data.cursor.y;
         },
       });
+      console.log(`[GenerarFichaTab] autoTable (formulacionPlanData) -> ${Math.round(performance.now() - tAutoFormulacionStart)}ms`);
 
       yPosition = doc.lastAutoTable.finalY + 10 || yPosition + 10;
 
@@ -557,7 +641,14 @@ export default function GenerarFichaTab({ id }) {
       doc.text(`${fecha.toLocaleDateString()} ${fecha.toLocaleTimeString()}`, pageWidth / 2, yPosition, { align: 'center' });
 
       // Descargar PDF
+      console.log(
+        `[GenerarFichaTab] PDF build (from img.onload start) -> ${Math.round(performance.now() - tBuildStart)}ms (id=${id})`
+      );
       doc.save(`Ficha_Negocio_Local_${id}.pdf`);
+    };
+
+    img.onerror = (err) => {
+      console.error(`[GenerarFichaTab] banner image failed to load -> after ${Math.round(performance.now() - tClickStart)}ms`, err);
     };
   };
 
