@@ -7,7 +7,7 @@ import config from '../../config';
 const codeToText = {
   "341": "341 - Conectandome con mi negocio 1",
   "342": "342 - Conectandome con mi negocio 2",
-  "343": "343 - Conectandome con mi negocio",
+  "343": "343 - Conectandome con mi mercado",
   "344": "344 - Conexiones digitales",
   "345": "345 - Tu empresa, tu apuesta verde",
   "346": "346 - Transicion a la sostenibilidad",
