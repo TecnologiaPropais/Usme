@@ -36,7 +36,8 @@ export default function FormulacionProvTab({ id }) {
     //"Descripcion corta",
     "Valor catalogo",
     //"Precio",
-    "Puntuacion evaluacion"
+    "Puntuacion evaluacion",
+    "Calificacion",
   ];
 
   // Columnas visibles en la tabla "Productos Seleccionados". Quita o comenta las que no quieras mostrar.
@@ -70,9 +71,13 @@ export default function FormulacionProvTab({ id }) {
           axios.get(elementosUrl, { headers: { Authorization: `Bearer ${token}` } }),
         ]);
 
-        const filteredFields = fieldsResponse.data.filter((field) =>
-          displayedFieldNames.includes(field.column_name)
-        );
+        const filteredFields = fieldsResponse.data
+          .filter((field) => displayedFieldNames.includes(field.column_name))
+          .sort(
+            (a, b) =>
+              displayedFieldNames.indexOf(a.column_name) -
+              displayedFieldNames.indexOf(b.column_name)
+          );
         setFields(filteredFields);
         setRubros(rubrosResponse.data);
         setElementos(elementosResponse.data);
@@ -410,8 +415,14 @@ export default function FormulacionProvTab({ id }) {
         return descripcionCorta.toLowerCase().includes(lowercasedFilter);
       });
     }
-    const sortedRecords = filtered.sort(
-      (a, b) => b["Puntuacion evaluacion"] - a["Puntuacion evaluacion"]
+    const calificacionNum = (record) => {
+      const v = record.Calificacion;
+      if (v === null || v === undefined || v === '') return Number.NEGATIVE_INFINITY;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : Number.NEGATIVE_INFINITY;
+    };
+    const sortedRecords = [...filtered].sort(
+      (a, b) => calificacionNum(b) - calificacionNum(a)
     );
     return sortedRecords; 
   }, [records, searchTerm]);
@@ -487,10 +498,16 @@ export default function FormulacionProvTab({ id }) {
                         ? 'columna-rubro'
                         : field.column_name === 'Elemento'
                         ? 'columna-elemento'
+                        : field.column_name === 'Calificacion'
+                        ? 'columna-calificacion'
                         : ''
                     }
                   >
-                    {field.column_name === 'Rubro' ? 'Kit' : field.column_name.replace('_', ' ')}
+                    {field.column_name === 'Rubro'
+                      ? 'Kit'
+                      : field.column_name === 'Calificacion'
+                      ? 'Calificación'
+                      : field.column_name.replace('_', ' ')}
                   </th>
                 ))}
                 <th className="text-center columna-cantidad">Cantidad</th>
@@ -516,6 +533,8 @@ export default function FormulacionProvTab({ id }) {
                               ? 'columna-rubro'
                               : field.column_name === 'Elemento'
                               ? 'columna-elemento'
+                              : field.column_name === 'Calificacion'
+                              ? 'columna-calificacion'
                               : ''
                           }
                         >
@@ -525,6 +544,10 @@ export default function FormulacionProvTab({ id }) {
                             ? getRubroName(record.Rubro)
                             : field.column_name === 'Precio'
                             ? `$ ${Number(record[field.column_name]).toLocaleString('es-CO')}`
+                            : field.column_name === 'Calificacion'
+                            ? record[field.column_name] != null && record[field.column_name] !== ''
+                              ? record[field.column_name]
+                              : '—'
                             : record[field.column_name]}
                         </td>
                       ))}
@@ -598,7 +621,7 @@ export default function FormulacionProvTab({ id }) {
                 })
               ) : (
                 <tr>
-                  <td colSpan={fields.length + 4} className="text-center">
+                  <td colSpan={fields.length + 3} className="text-center">
                     No hay coincidencias.
                   </td>
                 </tr>

@@ -240,6 +240,13 @@ input[type=number] {
   text-align: center;
 }
 
+.columna-calificacion {
+  max-width: 110px;
+  width: 96px;
+  min-width: 72px;
+  text-align: center;
+}
+
 /* Estilos para tabs deshabilitadas */
 .plan-de-inversion-tabs-sidebar .nav-item.disabled .nav-link.disabled-link {
   opacity: 0.5;
