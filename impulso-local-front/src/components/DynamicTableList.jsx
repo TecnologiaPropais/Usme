@@ -112,8 +112,8 @@ export default function DynamicTableList() {
 
       let filteredRecords = recordsResponse.data;
 
-      // Filtrar registros: Asesor (4) y Revisor documental (7) solo ven los que tienen asignado su user_id en la columna Asesor
-      if ((loggedUserRoleId === '4' || loggedUserRoleId === '7') && loggedUserId) {
+      // Filtrar registros: solo Asesor (4) ve únicamente los asignados a su user_id en la columna Asesor. Revisor documental (7) ve todos.
+      if (loggedUserRoleId === '4' && loggedUserId) {
         filteredRecords = filteredRecords.filter(
           (record) => String(record.Asesor) === String(loggedUserId)
         );
