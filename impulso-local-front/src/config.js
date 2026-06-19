@@ -1,5 +1,8 @@
 // Configuración de URLs base
 const config = {
+  // Inscripciones cerradas: oculta el formulario público y muestra aviso
+  inscriptionsClosed: true,
+
   // URLs base para diferentes entornos
   baseUrls: {
     local: import.meta.env.VITE_API_URL || 'http://localhost:4000/api',

@@ -195,6 +195,11 @@ export default function PublicRecordCreate() {
   ];
 
   useEffect(() => {
+    if (config.inscriptionsClosed) {
+      setLoading(false);
+      return;
+    }
+
     const fetchFieldsData = async () => {
       try {
         const fieldsResponse = await axios.get(
@@ -816,10 +821,17 @@ Por favor, estar atento(a) a los datos de contacto que suministró.`;
       </aside>
       <main className="form-wrapper">
         <section className="form-header">
-          <h1>Nuevo Registro</h1>
+          <h1>{config.inscriptionsClosed ? 'Inscripciones cerradas' : 'Nuevo Registro'}</h1>
         </section>
         <section className="form-content">
-          {loading ? (
+          {config.inscriptionsClosed ? (
+            <div className="inscriptions-closed-notice">
+              <p>
+                Gracias por querer hacer parte de Usme Orgullo Local, en este momento las
+                inscripciones se encuentran cerradas.
+              </p>
+            </div>
+          ) : loading ? (
             <div>Cargando...</div>
           ) : (
             <form onSubmit={handleSubmit} className="custom-form">
